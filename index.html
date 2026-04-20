@@ -3,140 +3,216 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SSFP — Sovereign School Finance Portal</title>
+<title>Way to Success Standard School — Finance Portal</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Libre+Franklin:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#f4f1eb;--bg2:#eae5da;--card:#fffef9;--card2:#faf8f2;
-  --ink:#1a1610;--ink2:#3d362a;--muted:#8a7e6d;--muted2:#b5aa96;
-  --border:#d6cebb;--border2:#e8e1d2;
-  --accent:#6b4c2a;--accent2:#8b6d45;--accent3:#a4874f;
-  --green:#2d6a3f;--green2:#e6f2ea;--greenBg:#dcf0e2;
-  --red:#9b2c2c;--red2:#fde8e8;--redBg:#fce4e4;
-  --blue:#2b5ea7;--blue2:#e8f0fa;
-  --gold:#c5981a;--gold2:#fdf6e3;
-  --header:#1a1610;--headerText:#f4f1eb;
-  --navBg:#2a2318;
-  --ff-d:'DM Serif Display',Georgia,serif;
-  --ff-b:'Libre Franklin','Segoe UI',sans-serif;
+  /* Navy/Gold Professional Palette */
+  --navy:#0d1b2a;--navy2:#1b2d40;--navy3:#243d55;--navy4:#2e4d6b;
+  --gold:#c9a84c;--gold2:#e8c97a;--gold3:#f5e4a8;--goldbg:#fdf8ec;
+  --slate:#4a5568;--slate2:#718096;--slate3:#a0aec0;
+  --bg:#f7f8fa;--bg2:#eef0f4;--card:#ffffff;--card2:#f9fafb;
+  --ink:#1a202c;--ink2:#2d3748;--muted:#718096;--muted2:#a0aec0;
+  --border:#e2e8f0;--border2:#edf2f7;
+  --green:#1a7f4b;--greenbg:#e6f7ef;--greenbdr:#b2dfcc;
+  --red:#c0392b;--redbg:#fef0ee;--redbdr:#f5c6c0;
+  --blue:#2563eb;--bluebg:#eff6ff;
+  --amber:#d97706;--amberbg:#fffbeb;
+  --ff-d:'Playfair Display',Georgia,serif;
+  --ff-b:'Inter','Segoe UI',sans-serif;
   --ff-m:'JetBrains Mono',Consolas,monospace;
-  --sh:0 1px 3px rgba(26,22,16,.08);
-  --sh2:0 4px 16px rgba(26,22,16,.1);
-  --r:6px;
+  --sh:0 1px 3px rgba(13,27,42,.06),0 1px 2px rgba(13,27,42,.04);
+  --sh2:0 4px 24px rgba(13,27,42,.10),0 2px 8px rgba(13,27,42,.06);
+  --sh3:0 20px 60px rgba(13,27,42,.15);
+  --r:8px;--r2:12px;
 }
 html{font-size:14px;scroll-behavior:smooth}
 body{font-family:var(--ff-b);background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
 input,select,textarea,button{font-family:inherit;font-size:inherit}
-::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:var(--bg2)}
-::-webkit-scrollbar-thumb{background:var(--muted2);border-radius:3px}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-@keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+::-webkit-scrollbar-thumb{background:var(--slate3);border-radius:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
-.fi{animation:fadeIn .35s ease-out both}
-.fd1{animation-delay:.05s}.fd2{animation-delay:.1s}.fd3{animation-delay:.15s}
-.shake{animation:shake .4s ease}
-@media print{body{background:#fff!important}.np{display:none!important}.po{display:block!important}.rp{break-inside:avoid}}.po{display:none}
-/* Layout */
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:var(--sh)}
-.ct{font-family:var(--ff-d);font-size:1.1rem;color:var(--ink);margin-bottom:12px}
-.gf{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:10px}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.3)}50%{box-shadow:0 0 0 6px rgba(201,168,76,0)}}
+.fu{animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both}
+.fd1{animation-delay:.04s}.fd2{animation-delay:.08s}.fd3{animation-delay:.12s}.fd4{animation-delay:.16s}
+.shake{animation:shake .35s ease}
+@media print{body{background:#fff!important}.np{display:none!important}.po{display:block!important}}.po{display:none}
+
+/* ── LAYOUT ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:20px;margin-bottom:16px;box-shadow:var(--sh)}
+.card-sm{padding:14px 16px}
+.sect{font-family:var(--ff-d);font-size:1.05rem;color:var(--ink);margin-bottom:14px;font-weight:600}
+.gf2{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.gf3{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
 .fr{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
 .fb{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
-/* Fields */
-.fl{display:flex;flex-direction:column;gap:3px}
-.flb{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
-.inp{padding:7px 10px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--ink);outline:none;width:100%;transition:border-color .2s}
-.inp:focus{border-color:var(--accent)}
-.inpm{font-family:var(--ff-m);padding:7px 10px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--ink);outline:none}
-.sel{padding:7px 10px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--ink);outline:none;cursor:pointer;width:100%}
-/* Buttons */
-.btn{font-weight:700;padding:8px 20px;border:none;border-radius:4px;cursor:pointer;transition:all .15s;text-transform:uppercase;font-size:.78rem;letter-spacing:.3px;white-space:nowrap}
-.bp{background:var(--accent);color:#fff}.bp:hover{background:var(--accent2)}
-.bg2{background:var(--green);color:#fff}.bg2:hover{opacity:.9}
-.br{background:var(--red);color:#fff}.br:hover{opacity:.9}
-.bo{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}.bo:hover{background:var(--accent);color:#fff}
-.bgh{background:transparent;color:var(--muted);border:1px solid var(--border);padding:6px 14px;font-weight:500}.bgh:hover{background:var(--bg2)}
-.bs{padding:5px 12px;font-size:.7rem}
-/* Messages */
-.mo{background:var(--green2);border:1px solid #a5d6a7;color:var(--green);padding:9px 14px;border-radius:4px;font-size:.83rem;margin-bottom:10px;animation:slideDown .3s ease}
-.me{background:var(--red2);border:1px solid #e8aaaa;color:var(--red);padding:9px 14px;border-radius:4px;font-size:.83rem;margin-bottom:10px;animation:slideDown .3s ease}
-.mw{background:var(--gold2);border:1px solid #e0c97a;color:#7a6a20;padding:9px 14px;border-radius:4px;font-size:.83rem;margin-bottom:10px}
-/* Badges */
-.badge{font-family:var(--ff-m);font-size:.63rem;padding:2px 8px;border-radius:3px;font-weight:600}
-.bdg{background:var(--greenBg);color:var(--green)}
-.bdr{background:var(--redBg);color:var(--red)}
-.bdo{background:var(--gold2);color:#7a6a20}
-.bdb{background:var(--blue2);color:var(--blue)}
+
+/* ── FIELDS ── */
+.fl{display:flex;flex-direction:column;gap:4px}
+.flb{font-size:.66rem;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.7px}
+.inp{padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);outline:none;width:100%;transition:border-color .2s,box-shadow .2s;font-size:.85rem}
+.inp:focus{border-color:var(--navy3);box-shadow:0 0 0 3px rgba(36,61,85,.08)}
+.inpm{font-family:var(--ff-m);padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);outline:none;font-size:.85rem}
+.sel{padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);outline:none;cursor:pointer;width:100%;font-size:.85rem;transition:border-color .2s}
+.sel:focus{border-color:var(--navy3)}
+.textarea{padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);outline:none;width:100%;resize:vertical;font-size:.85rem}
+.textarea:focus{border-color:var(--navy3)}
+
+/* ── BUTTONS ── */
+.btn{font-weight:600;padding:9px 20px;border:none;border-radius:6px;cursor:pointer;transition:all .15s;font-size:.8rem;letter-spacing:.2px;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--navy);color:#fff}.btn-primary:hover{background:var(--navy2)}
+.btn-gold{background:var(--gold);color:var(--navy)}.btn-gold:hover{background:var(--gold2)}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{opacity:.9}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{opacity:.9}
+.btn-outline{background:transparent;color:var(--navy);border:1.5px solid var(--navy)}.btn-outline:hover{background:var(--navy);color:#fff}
+.btn-ghost{background:transparent;color:var(--muted);border:1.5px solid var(--border)}.btn-ghost:hover{background:var(--bg2);color:var(--ink)}
+.btn-sm{padding:6px 14px;font-size:.74rem}
+.btn-xs{padding:4px 10px;font-size:.7rem}
+.btn-save{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);font-weight:700;box-shadow:0 2px 8px rgba(201,168,76,.3)}
+.btn-save:hover{box-shadow:0 4px 16px rgba(201,168,76,.4);transform:translateY(-1px)}
+
+/* ── MESSAGES ── */
+.msg-ok{background:var(--greenbg);border:1px solid var(--greenbdr);color:var(--green);padding:10px 14px;border-radius:6px;font-size:.82rem;margin-bottom:12px;animation:slideDown .25s ease;display:flex;align-items:center;gap:8px}
+.msg-err{background:var(--redbg);border:1px solid var(--redbdr);color:var(--red);padding:10px 14px;border-radius:6px;font-size:.82rem;margin-bottom:12px;animation:slideDown .25s ease;display:flex;align-items:center;gap:8px}
+.msg-warn{background:var(--amberbg);border:1px solid #fbbf24;color:var(--amber);padding:10px 14px;border-radius:6px;font-size:.82rem;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.msg-info{background:var(--bluebg);border:1px solid #93c5fd;color:var(--blue);padding:10px 14px;border-radius:6px;font-size:.82rem;margin-bottom:12px}
+
+/* ── BADGES ── */
+.badge{font-family:var(--ff-m);font-size:.62rem;padding:3px 8px;border-radius:4px;font-weight:600;letter-spacing:.3px}
+.bdg{background:var(--greenbg);color:var(--green);border:1px solid var(--greenbdr)}
+.bdr{background:var(--redbg);color:var(--red);border:1px solid var(--redbdr)}
+.bdo{background:var(--amberbg);color:var(--amber);border:1px solid #fbbf24}
+.bdb{background:var(--bluebg);color:var(--blue);border:1px solid #93c5fd}
+.bdn{background:var(--navy);color:#fff}
+.bdgold{background:var(--goldbg);color:#7a5c1e;border:1px solid var(--gold)}
 .hint{font-size:.76rem;color:var(--muted);font-style:italic;margin-top:4px}
-/* Tables */
-.tw{overflow-x:auto;border:1px solid var(--border);border-radius:4px;margin-top:6px}
+
+/* ── TABLES ── */
+.tw{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r);margin-top:8px}
 table{width:100%;border-collapse:collapse;font-size:.8rem}
-th{text-align:left;padding:8px 10px;background:var(--header);color:var(--headerText);font-weight:600;font-size:.66rem;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;position:sticky;top:0;z-index:1}
+th{text-align:left;padding:10px 12px;background:var(--navy);color:#fff;font-weight:600;font-size:.66rem;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
 th.r{text-align:right}
-td{padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--ink2)}
+td{padding:8px 12px;border-bottom:1px solid var(--border2);color:var(--ink2);vertical-align:middle}
 td.mn{font-family:var(--ff-m);font-size:.72rem;color:var(--muted)}
-td.my{font-family:var(--ff-m);font-size:.8rem;text-align:right;font-weight:600;color:var(--green)}
-td.mr{font-family:var(--ff-m);font-size:.8rem;text-align:right;font-weight:600;color:var(--red)}
-tr:hover td{background:var(--bg2)}
-tr.rvd td{text-decoration:line-through;opacity:.5;background:var(--red2)}
-tr.rvr td{background:#fff8f0}
-.er{padding:22px;text-align:center;color:var(--muted);font-style:italic;font-size:.8rem}
-/* KPI */
-.kg{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:14px}
-.kpi{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh)}
-.kl{font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
-.kv{font-family:var(--ff-m);font-size:1.3rem;font-weight:700;color:var(--ink);margin-top:4px}
-/* Pills */
-.cp{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
-.pill{font-size:.73rem;padding:4px 11px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:var(--card);color:var(--muted);transition:all .15s;font-weight:500}
-.pill.a{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
-/* Toggle */
-.ton{font-family:var(--ff-m);font-size:.66rem;font-weight:700;padding:3px 11px;background:var(--green);color:#fff;border:none;border-radius:3px;cursor:pointer}
-.tof{font-family:var(--ff-m);font-size:.66rem;font-weight:700;padding:3px 11px;background:#bbb;color:#fff;border:none;border-radius:3px;cursor:pointer}
-/* Lesson grid */
-.lg{display:grid;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:4px;overflow:hidden}
-.lc{background:var(--card);padding:7px;text-align:center;font-family:var(--ff-m);font-size:.78rem}
-.lh{background:var(--header);color:var(--headerText);font-weight:600;font-size:.64rem;text-transform:uppercase;padding:7px;text-align:center}
-.lt{background:var(--gold2);font-weight:700}
+td.my{font-family:var(--ff-m);font-size:.8rem;text-align:right;font-weight:700;color:var(--green)}
+td.mr{font-family:var(--ff-m);font-size:.8rem;text-align:right;font-weight:700;color:var(--red)}
+tbody tr:hover td{background:var(--bg2)}
+tbody tr:last-child td{border-bottom:none}
+tr.rvd td{text-decoration:line-through;opacity:.45;background:var(--redbg)}
+tr.rvr td{background:#fffbf0}
+.er{padding:28px;text-align:center;color:var(--muted);font-size:.8rem;font-style:italic}
+
+/* ── KPI CARDS ── */
+.kg{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:16px 18px;box-shadow:var(--sh);position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--accent,var(--navy))}
+.kl{font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.kv{font-family:var(--ff-m);font-size:1.3rem;font-weight:700;color:var(--ink);margin-top:6px}
+.ksub{font-size:.72rem;color:var(--muted);margin-top:3px}
+
+/* ── PILLS ── */
+.cp{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.pill{font-size:.74rem;padding:5px 13px;border:1.5px solid var(--border);border-radius:20px;cursor:pointer;background:var(--card);color:var(--muted);transition:all .15s;font-weight:500}
+.pill.a{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:600}
+.pill:hover:not(.a){border-color:var(--navy3);color:var(--ink)}
+
+/* ── TOGGLES ── */
+.ton{font-family:var(--ff-m);font-size:.65rem;font-weight:700;padding:4px 12px;background:var(--green);color:#fff;border:none;border-radius:4px;cursor:pointer;letter-spacing:.3px}
+.tof{font-family:var(--ff-m);font-size:.65rem;font-weight:700;padding:4px 12px;background:var(--slate3);color:#fff;border:none;border-radius:4px;cursor:pointer}
+
+/* ── LESSON GRID ── */
+.lg{display:grid;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.lc{background:var(--card);padding:7px 6px;text-align:center;font-family:var(--ff-m);font-size:.76rem}
+.lh{background:var(--navy);color:#fff;font-weight:600;font-size:.64rem;text-transform:uppercase;padding:8px 6px;text-align:center;letter-spacing:.3px}
+.lt{background:var(--goldbg);font-weight:700;color:var(--navy)}
 .li{width:100%;text-align:center;border:1px solid var(--border);border-radius:3px;padding:4px 2px;font-family:var(--ff-m);font-size:.76rem;background:#fff;outline:none}
-/* Bar chart */
-.bar-r{display:flex;align-items:center;gap:8px;margin-bottom:5px}
-.bar-l{font-size:.73rem;color:var(--ink2);width:120px;text-align:right;flex-shrink:0}
-.bar-t{flex:1;height:16px;background:var(--bg2);border-radius:3px;overflow:hidden}
-.bar-f{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:3px;transition:width .5s}
-.bar-v{font-family:var(--ff-m);font-size:.7rem;color:var(--muted);width:85px;flex-shrink:0}
-/* Sync indicator */
-.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
-.dok{background:#2d6a3f}.derr{background:#9b2c2c}.dld{background:#c5981a;animation:pulse 1s infinite}
-/* Notif */
-.nd{width:7px;height:7px;background:var(--red);border-radius:50%;position:absolute;top:-2px;right:-2px;animation:pulse 1.5s infinite}
-.np2{position:absolute;top:calc(100% + 4px);right:0;width:320px;max-height:380px;overflow-y:auto;background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh2);z-index:200;animation:slideDown .2s ease}
-.ni{padding:10px 14px;border-bottom:1px solid var(--border2);font-size:.78rem;cursor:pointer}
+.li:focus{border-color:var(--navy3)}
+
+/* ── BAR CHART ── */
+.bar-r{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.bar-l{font-size:.74rem;color:var(--ink2);width:130px;text-align:right;flex-shrink:0;font-weight:500}
+.bar-t{flex:1;height:18px;background:var(--bg2);border-radius:4px;overflow:hidden}
+.bar-f{height:100%;background:linear-gradient(90deg,var(--navy3),var(--navy4));border-radius:4px;transition:width .6s cubic-bezier(.16,1,.3,1)}
+.bar-v{font-family:var(--ff-m);font-size:.72rem;color:var(--muted);width:90px;flex-shrink:0;font-weight:600}
+
+/* ── SYNC STATUS ── */
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;flex-shrink:0}
+.dok{background:#22c55e}.derr{background:#ef4444}.dld{background:#f59e0b;animation:pulse .8s infinite}
+
+/* ── NOTIFICATIONS ── */
+.nd{width:8px;height:8px;background:#ef4444;border-radius:50%;position:absolute;top:-1px;right:-1px;border:1.5px solid var(--navy);animation:pulse 1.5s infinite}
+.npanel{position:absolute;top:calc(100% + 8px);right:0;width:340px;max-height:400px;overflow-y:auto;background:var(--card);border:1px solid var(--border);border-radius:var(--r2);box-shadow:var(--sh3);z-index:300;animation:slideDown .2s ease}
+.ni{padding:12px 16px;border-bottom:1px solid var(--border2);font-size:.79rem;cursor:pointer;transition:background .1s}
 .ni:hover{background:var(--bg2)}
-.ni.ur{border-left:3px solid var(--red);background:var(--red2)}
-/* PIN pad */
-.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:220px;margin:16px auto 0}
-.pin-btn{font-family:var(--ff-m);font-size:1.2rem;font-weight:700;padding:14px;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);cursor:pointer;transition:all .15s;text-align:center}
-.pin-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
-.pin-btn:active{transform:scale(.95)}
-.pin-dots{display:flex;justify-content:center;gap:10px;margin:12px 0}
-.pin-dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--border);background:#fff;transition:all .2s}
-.pin-dot.filled{background:var(--accent);border-color:var(--accent)}
-/* Receipt */
-.receipt{border:2px solid var(--ink);padding:22px;max-width:480px;margin:0 auto;background:#fff;font-size:.83rem}
-.receipt h2{font-family:var(--ff-d);text-align:center;margin-bottom:4px}
-.rl{border-bottom:1px dashed var(--border);padding:5px 0;display:flex;justify-content:space-between;gap:8px}
-.rt{border-top:2px solid var(--ink);padding-top:8px;margin-top:8px;font-weight:700;font-family:var(--ff-m);display:flex;justify-content:space-between}
-/* Camera */
-.ca{border:2px dashed var(--border);border-radius:var(--r);padding:24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg2)}
-.ca:hover{border-color:var(--accent);background:var(--card)}
+.ni.ur{border-left:3px solid var(--red);background:var(--redbg)}
+
+/* ── PIN PAD ── */
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:210px;margin:14px auto 0}
+.pin-btn{font-family:var(--ff-m);font-size:1.15rem;font-weight:700;padding:13px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:var(--ink);cursor:pointer;transition:all .12s;text-align:center;box-shadow:var(--sh)}
+.pin-btn:hover{border-color:var(--navy);background:var(--navy);color:#fff}
+.pin-btn:active{transform:scale(.93)}
+.pin-dots{display:flex;justify-content:center;gap:10px;margin:14px 0 6px}
+.pin-dot{width:11px;height:11px;border-radius:50%;border:2px solid var(--border);background:#fff;transition:all .2s}
+.pin-dot.f{background:var(--gold);border-color:var(--gold)}
+
+/* ── RECEIPT ── */
+.receipt-wrap{border:2px solid var(--ink);padding:28px;max-width:520px;margin:0 auto;background:#fff;font-size:.84rem}
+.receipt-school{font-family:var(--ff-d);font-size:1.3rem;font-weight:700;text-align:center;margin-bottom:2px}
+.receipt-sub{font-size:.72rem;text-align:center;color:var(--slate);margin-bottom:14px}
+.receipt-divider{border:none;border-top:1px dashed var(--border);margin:10px 0}
+.receipt-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;gap:12px;border-bottom:1px solid var(--border2)}
+.receipt-total{display:flex;justify-content:space-between;padding-top:10px;margin-top:6px;font-weight:800;font-family:var(--ff-m);font-size:.95rem;border-top:2.5px solid var(--ink)}
+.receipt-footer{text-align:center;font-size:.65rem;color:var(--muted);margin-top:16px;line-height:1.6}
+
+/* ── AI PANEL ── */
+.ai-thinking{display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--bluebg);border:1px solid #93c5fd;border-radius:6px;font-size:.8rem;color:var(--blue);animation:pulse .8s infinite}
+.ai-result{padding:14px;background:var(--goldbg);border:1px solid var(--gold);border-radius:8px;font-size:.82rem;line-height:1.6;color:var(--ink2)}
+
+/* ── LOGIN PAGE ── */
+.login-bg{min-height:100vh;background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 40%,var(--navy4) 100%);display:flex;align-items:center;justify-content:center;padding:20px;position:relative;overflow:hidden}
+.login-bg::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;border:1px solid rgba(201,168,76,.1);top:-100px;right:-100px}
+.login-bg::after{content:'';position:absolute;width:400px;height:400px;border-radius:50%;border:1px solid rgba(201,168,76,.08);bottom:-50px;left:-80px}
+.login-card{background:#fff;border-radius:16px;padding:36px 28px;max-width:400px;width:100%;box-shadow:var(--sh3);position:relative;z-index:1}
+.login-logo{width:64px;height:64px;background:var(--navy);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 8px 24px rgba(13,27,42,.3)}
+.login-logo svg{width:32px;height:32px;fill:var(--gold)}
+.login-school{font-family:var(--ff-d);font-size:1.1rem;color:var(--navy);font-weight:700;text-align:center;line-height:1.3;margin-bottom:4px}
+.login-tagline{font-size:.72rem;color:var(--muted);text-align:center;margin-bottom:20px;letter-spacing:.3px}
+
+/* ── HEADER ── */
+.hdr{background:var(--navy);color:#fff;display:flex;justify-content:space-between;align-items:center;padding:0 16px;height:54px;flex-wrap:wrap;gap:8px;box-shadow:0 2px 8px rgba(13,27,42,.2)}
+.hdr-brand{display:flex;align-items:center;gap:10px}
+.hdr-logo{width:30px;height:30px;background:var(--gold);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--ff-d);font-size:.7rem;font-weight:700;color:var(--navy);letter-spacing:.5px;flex-shrink:0}
+.hdr-school{font-size:.78rem;font-weight:600;opacity:.9;letter-spacing:.2px}
+.hdr-right{display:flex;align-items:center;gap:8px}
+
+/* ── NAV ── */
+.nav{background:var(--navy2);display:flex;padding:0 8px;overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.06)}
+.nav::-webkit-scrollbar{height:0}
+.nav-btn{background:transparent;color:rgba(255,255,255,.45);border:none;padding:11px 14px;font-size:.76rem;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;font-weight:500;transition:all .15s;font-family:inherit;display:flex;align-items:center;gap:5px}
+.nav-btn.a{color:#fff;border-bottom-color:var(--gold);font-weight:600;background:rgba(255,255,255,.04)}
+.nav-btn:hover:not(.a){color:rgba(255,255,255,.7)}
+
+/* ── SECTION TOGGLE ── */
+.sec-toggle{display:flex;border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,.15)}
+.sec-btn{background:transparent;color:rgba(255,255,255,.5);border:none;padding:4px 14px;font-size:.72rem;cursor:pointer;font-weight:500;font-family:inherit;transition:all .15s}
+.sec-btn.a{background:var(--gold);color:var(--navy);font-weight:700}
+
+/* ── HEADER ICON BTN ── */
+.icon-btn{background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.12);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:.76rem;font-family:inherit;transition:all .15s;position:relative;display:flex;align-items:center;gap:4px}
+.icon-btn:hover{background:rgba(255,255,255,.08);color:#fff}
+
+/* ── AI AUDIT BADGE ── */
+.ai-badge{display:inline-flex;align-items:center;gap:4px;font-size:.65rem;font-weight:700;padding:3px 8px;border-radius:4px;background:linear-gradient(90deg,var(--navy3),var(--navy4));color:var(--gold);letter-spacing:.3px}
 </style>
 </head>
 <body>
@@ -144,34 +220,20 @@ tr.rvr td{background:#fff8f0}
 <script type="text/babel">
 const {useState,useEffect,useCallback,useMemo,useRef,createContext,useContext}=React;
 
-// ═══════════════════════════════════════════════════
-// SUPABASE CONFIG
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// SUPABASE
+// ══════════════════════════════════════════════════
 const SB="https://wuftzyeajmsxdrbwaawl.supabase.co";
 const SK="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnR6eWVham1zeGRyYndhYXdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NjczNTgsImV4cCI6MjA4OTQ0MzM1OH0.QUeDRP1IpHCjvecqAOEZAqmMalEFlCLXylZP5D5iLog";
 const SH={"apikey":SK,"Authorization":"Bearer "+SK,"Content-Type":"application/json","Prefer":"return=representation"};
+const sbG=async(t,q="")=>{const r=await fetch(`${SB}/rest/v1/${t}?${q}`,{headers:SH});if(!r.ok)throw new Error(await r.text());return r.json()};
+const sbP=async(t,d)=>{const r=await fetch(`${SB}/rest/v1/${t}`,{method:"POST",headers:SH,body:JSON.stringify(Array.isArray(d)?d:[d])});if(!r.ok)throw new Error(await r.text());return r.json()};
+const sbPA=async(t,q,d)=>{const r=await fetch(`${SB}/rest/v1/${t}?${q}`,{method:"PATCH",headers:{...SH,"Prefer":"return=representation"},body:JSON.stringify(d)});if(!r.ok)throw new Error(await r.text());return r.json()};
+const sbU=async(t,d)=>{const r=await fetch(`${SB}/rest/v1/${t}`,{method:"POST",headers:{...SH,"Prefer":"return=representation,resolution=merge-duplicates"},body:JSON.stringify(Array.isArray(d)?d:[d])});if(!r.ok)throw new Error(await r.text());return r.json()};
 
-const sbGet=async(t,q="")=>{const r=await fetch(`${SB}/rest/v1/${t}?${q}`,{headers:SH});if(!r.ok)throw new Error(await r.text());return r.json()};
-const sbPost=async(t,d)=>{const r=await fetch(`${SB}/rest/v1/${t}`,{method:"POST",headers:SH,body:JSON.stringify(Array.isArray(d)?d:[d])});if(!r.ok)throw new Error(await r.text());return r.json()};
-const sbPatch=async(t,q,d)=>{const r=await fetch(`${SB}/rest/v1/${t}?${q}`,{method:"PATCH",headers:{...SH,"Prefer":"return=representation"},body:JSON.stringify(d)});if(!r.ok)throw new Error(await r.text());return r.json()};
-const sbUpsert=async(t,d)=>{const r=await fetch(`${SB}/rest/v1/${t}`,{method:"POST",headers:{...SH,"Prefer":"return=representation,resolution=merge-duplicates"},body:JSON.stringify(Array.isArray(d)?d:[d])});if(!r.ok)throw new Error(await r.text());return r.json()};
-
-// ═══════════════════════════════════════════════════
-// SUPERADMIN — HARDCODED (no record in database)
-// Change PIN here to update. Never stored anywhere.
-// ═══════════════════════════════════════════════════
-const SUPER={
-  username:"sovereign",
-  pin:"141516",     // ← CHANGE THIS PIN
-  role:"admin",
-  name:"Proprietor / SuperAdmin",
-  section:"both",
-  isSuperAdmin:true,
-};
-
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 // CONSTANTS
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 const SEC_A=["Crèche","KG1","KG2","Nursery 1","Nursery 2","Primary 1"];
 const SEC_B=["Primary 2","Primary 3","Primary 4","Primary 5","JSS1","JSS2","JSS3","SS1","SS2","SS3"];
 const ALL_CLS=[...SEC_A,...SEC_B];
@@ -179,68 +241,56 @@ const DEF_CATS=["Tuition Fee","Exam Fee","Report Card Fee","End of Year Party Fe
 const PAY_MODES=["Cash","Bank Transfer","POS"];
 const EXAM_CLS=["Primary 5","JSS3","SS3"];
 const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday"];
+const SCHOOL_NAME="Way to Success Standard School, Ejigbo";
+const SCHOOL_SHORT="Way to Success Standard School";
 
-// class_key → SSFP class mapping
+// ── PROPRIETOR CREDENTIALS (hardcoded, no database record) ──
+// Username: waytosuccess  |  Default PIN: 246810
+// Change PIN via Settings → School Profile
+const PROP_USER="waytosuccess";
+const PROP_PIN_KEY="ssfp_prop_pin"; // stored hashed in localStorage only
+const PROP_DEFAULT_PIN="246810";
+
 function mapKey(ck){
   if(!ck)return null;
   const k=ck.toLowerCase().replace(/[\s_]+/g,"-");
-  const M={
-    "creche":"Crèche","crèche":"Crèche","crache":"Crèche",
-    "kg1":"KG1","kg-1":"KG1","kg2":"KG2","kg-2":"KG2",
-    "nursery1":"Nursery 1","nursery-1":"Nursery 1",
-    "nursery2":"Nursery 2","nursery-2":"Nursery 2",
-    "primary1":"Primary 1","primary-1":"Primary 1",
-    "primary2":"Primary 2","primary-2":"Primary 2",
-    "primary3":"Primary 3","primary-3":"Primary 3",
-    "primary4":"Primary 4","primary-4":"Primary 4",
-    "primary5":"Primary 5","primary-5":"Primary 5",
-    "jss1":"JSS1","jss-1":"JSS1","js1":"JSS1",
-    "jss2":"JSS2","jss-2":"JSS2","js2":"JSS2",
-    "jss3":"JSS3","jss-3":"JSS3","js3":"JSS3",
-    "ss1":"SS1","ss-1":"SS1","s1":"SS1",
-    "ss2":"SS2","ss-2":"SS2","s2":"SS2",
-    "ss3":"SS3","ss-3":"SS3","s3":"SS3",
-  };
+  const M={"creche":"Crèche","crèche":"Crèche","crache":"Crèche","kg1":"KG1","kg-1":"KG1","kg2":"KG2","kg-2":"KG2","nursery1":"Nursery 1","nursery-1":"Nursery 1","nursery2":"Nursery 2","nursery-2":"Nursery 2","primary1":"Primary 1","primary-1":"Primary 1","primary2":"Primary 2","primary-2":"Primary 2","primary3":"Primary 3","primary-3":"Primary 3","primary4":"Primary 4","primary-4":"Primary 4","primary5":"Primary 5","primary-5":"Primary 5","jss1":"JSS1","jss-1":"JSS1","jss2":"JSS2","jss-2":"JSS2","jss3":"JSS3","jss-3":"JSS3","ss1":"SS1","ss-1":"SS1","ss2":"SS2","ss-2":"SS2","ss3":"SS3","ss-3":"SS3"};
   if(M[k])return M[k];
-  // Strip science/arts/commercial variant suffix
   const base=k.replace(/-(science|arts?|commercial|social|tech|general|vocational|basic|a|b|c)(\d*)$/i,"");
-  if(M[base])return M[base];
-  return M[base.replace(/-/g,"")]||null;
+  return M[base]||M[base.replace(/-/g,"")]||null;
 }
 
-// Helpers
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const today=()=>new Date().toISOString().slice(0,10);
 const fmtD=d=>{if(!d)return"";const s=(d+"").slice(0,10).split("-");return`${s[2]}/${s[1]}/${s[0]}`};
 const dayN=d=>new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"long"});
 const N=n=>"₦"+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-const LS={g:(k,f)=>{try{const v=localStorage.getItem("ssfp_"+k);return v?JSON.parse(v):f}catch{return f}},s:(k,v)=>{try{localStorage.setItem("ssfp_"+k,JSON.stringify(v))}catch{}}};
-
-// Simple PIN hash (SHA-256 via browser API) — PINs never stored plain
-const hashPin=async(pin,username)=>{
-  const data=new TextEncoder().encode(pin+":"+username+":ssfp2025");
-  const buf=await crypto.subtle.digest("SHA-256",data);
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+const LS={g:(k,f)=>{try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):f}catch{return f}},s:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+const hashPin=async(pin,salt)=>{const d=new TextEncoder().encode(pin+":"+salt+":wts2025");const b=await crypto.subtle.digest("SHA-256",d);return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join("")};
+const checkPropPin=async(entered)=>{
+  const stored=LS.g(PROP_PIN_KEY,null);
+  if(!stored){// First run — check against default
+    const defHash=await hashPin(PROP_DEFAULT_PIN,PROP_USER);
+    const entHash=await hashPin(entered,PROP_USER);
+    return defHash===entHash;
+  }
+  const entHash=await hashPin(entered,PROP_USER);
+  return stored===entHash;
 };
-const checkSuperPin=async(pin)=>{
-  const h=await hashPin(SUPER.pin,SUPER.username);
-  const entered=await hashPin(pin,SUPER.username);
-  return h===entered;
-};
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 // CONTEXT
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 const Ctx=createContext();
 function Prov({children}){
-  const[session,setSession]=useState(null); // {user, role, section, name, isSuperAdmin}
-  const[dbOk,setDbOk]=useState(null); // null=loading, true, false
+  const[session,setSession]=useState(null);
+  const[dbOk,setDbOk]=useState(null);
   const[syncMsg,setSyncMsg]=useState("Connecting…");
-
-  // Core data
+  // Data
   const[students,setStudents]=useState({});
   const[cashBook,setCashBook]=useState([]);
   const[categories,setCategories]=useState(DEF_CATS);
+  // Per-class fee targets: {className: {category: amount}}
   const[feeTargets,setFeeTargets]=useState({});
   const[salaries,setSalaries]=useState([]);
   const[extExams,setExtExams]=useState([]);
@@ -251,298 +301,232 @@ function Prov({children}){
   const[scholarships,setScholarships]=useState([]);
   const[auditLog,setAuditLog]=useState([]);
   const[notifs,setNotifs]=useState([]);
+  const[schoolProfile,setSchoolProfile]=useState({name:SCHOOL_NAME,address:"",phone:"",email:"",principal:"",motto:"",stampNote:""});
+  const[aiConfig,setAiConfig]=useState({apiKey:"",model:"google/gemini-2.0-flash-001"});
 
-  // ── Initial load ──
   useEffect(()=>{
     (async()=>{
       try{
-        // 1. Pull students from result portal
         setSyncMsg("Loading students…");
-        const raw=await sbGet("students","select=id,name,class_key,admno,gender&order=name.asc");
+        const raw=await sbG("students","select=id,name,class_key,admno,gender&order=name.asc");
         const mapped={};
-        raw.forEach(s=>{
-          const cls=mapKey(s.class_key);
-          if(!cls)return;
-          if(!mapped[cls])mapped[cls]=[];
-          if(!mapped[cls].find(x=>x.admno===s.admno&&x.name===s.name))
-            mapped[cls].push({name:s.name,admno:s.admno||"",gender:s.gender||"",supaId:s.id,payments:[],arrears:0});
-        });
+        raw.forEach(s=>{const cls=mapKey(s.class_key);if(!cls)return;if(!mapped[cls])mapped[cls]=[];if(!mapped[cls].find(x=>x.admno===s.admno&&x.name===s.name))mapped[cls].push({name:s.name,admno:s.admno||"",gender:s.gender||"",supaId:s.id,payments:[],arrears:0})});
 
-        // 2. Load SSFP tables (gracefully — tables may not exist yet)
+        const tryG=async(t,q)=>{try{return await sbG(t,q)}catch{return[]}};
         let cb=[],cfg=null,sal=[],ext=[],lw=[],dp=[],sch=[],al=[],nf=[];
-        const tryGet=async(t,q)=>{try{return await sbGet(t,q)}catch{return[]}};
-
         [cb,sal,ext,lw,dp,sch,al,nf]=await Promise.all([
-          tryGet("ssfp_cashbook","order=timestamp.asc"),
-          tryGet("ssfp_salaries","order=created_at.desc"),
-          tryGet("ssfp_ext_exams","order=created_at.desc"),
-          tryGet("ssfp_lesson_weeks","order=created_at.desc"),
-          tryGet("ssfp_direct_pay","order=created_at.desc"),
-          tryGet("ssfp_scholarships","order=created_at.desc"),
-          tryGet("ssfp_audit_log","order=time.desc&limit=300"),
-          tryGet("ssfp_notifications","order=time.desc&limit=100"),
+          tryG("ssfp_cashbook","order=timestamp.asc"),tryG("ssfp_salaries","order=created_at.desc"),
+          tryG("ssfp_ext_exams","order=created_at.desc"),tryG("ssfp_lesson_weeks","order=created_at.desc"),
+          tryG("ssfp_direct_pay","order=created_at.desc"),tryG("ssfp_scholarships","order=created_at.desc"),
+          tryG("ssfp_audit_log","order=time.desc&limit=300"),tryG("ssfp_notifications","order=time.desc&limit=100"),
         ]);
-        // Settings (single row)
-        try{const r=await sbGet("ssfp_settings","key=eq.main&limit=1");if(r&&r[0])cfg=r[0].value}catch{}
+        try{const r=await sbG("ssfp_settings","key=eq.main&limit=1");if(r&&r[0])cfg=r[0].value}catch{}
 
-        // 3. Merge payments into student records
         cb.filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{
           if(!mapped[e.class_name])return;
           const si=mapped[e.class_name].findIndex(s=>s.name===e.student);
-          if(si>=0)mapped[e.class_name][si].payments.push({
-            id:e.entry_id,date:e.date,category:e.category,
-            amount:e.amount,mode:e.mode,isPriorTerm:e.is_prior_term||false,timestamp:e.timestamp});
+          if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:e.amount,mode:e.mode,isPriorTerm:e.is_prior_term||false,timestamp:e.timestamp,receiptId:e.receipt_id||e.entry_id});
         });
         cb.filter(e=>e.reversal_of).forEach(e=>{
           if(!mapped[e.class_name])return;
           const si=mapped[e.class_name].findIndex(s=>s.name===e.student);
-          if(si>=0)mapped[e.class_name][si].payments.push({
-            id:e.entry_id,date:e.date,category:e.category,
-            amount:-Math.abs(e.amount),mode:e.mode,note:"Reversal",timestamp:e.timestamp});
+          if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:-Math.abs(e.amount),mode:e.mode,note:"Reversal",timestamp:e.timestamp});
         });
 
         setStudents(mapped);setCashBook(cb);
-        if(cfg){setCategories(cfg.categories||DEF_CATS);setFeeTargets(cfg.feeTargets||{});setTermCfg(cfg.termCfg||termCfg);setLessonCur(cfg.lessonCur||lessonCur)}
-        setSalaries(sal);setExtExams(ext);setLessonWeeks(lw);
-        setDirectPay(dp);setScholarships(sch);setAuditLog(al);setNotifs(nf);
-
-        setDbOk(true);setSyncMsg(`Synced — ${raw.length} students`);
+        if(cfg){
+          if(cfg.categories)setCategories(cfg.categories);
+          if(cfg.feeTargets)setFeeTargets(cfg.feeTargets);
+          if(cfg.termCfg)setTermCfg(cfg.termCfg);
+          if(cfg.lessonCur)setLessonCur(cfg.lessonCur);
+          if(cfg.schoolProfile)setSchoolProfile(p=>({...p,...cfg.schoolProfile}));
+          if(cfg.aiConfig)setAiConfig(a=>({...a,...cfg.aiConfig}));
+        }
+        setSalaries(sal);setExtExams(ext);setLessonWeeks(lw);setDirectPay(dp);setScholarships(sch);setAuditLog(al);setNotifs(nf);
+        setDbOk(true);setSyncMsg(`Connected — ${raw.length} students`);
       }catch(e){
-        console.error("DB init:",e);
-        setDbOk(false);setSyncMsg("Offline — local cache");
-        // Fallback
-        setStudents(LS.g("students",{}));setCashBook(LS.g("cashbook",[]));
-        setCategories(LS.g("cats",DEF_CATS));setFeeTargets(LS.g("targets",{}));
-        setTermCfg(LS.g("termCfg",{term:"Term 1",year:"2025/2026",activeCats:DEF_CATS.reduce((a,c)=>({...a,[c]:true}),{})}));
-        setSalaries(LS.g("salaries",[]));setExtExams(LS.g("extExams",[]));
-        setLessonWeeks(LS.g("lessonWeeks",[]));setLessonCur(LS.g("lessonCur",{days:{},teacherRate:2500,teacherCount:10}));
-        setDirectPay(LS.g("directPay",[]));setScholarships(LS.g("scholarships",[]));
-        setAuditLog(LS.g("auditLog",[]));setNotifs(LS.g("notifs",[]));
+        console.error(e);setDbOk(false);setSyncMsg("Offline — using local cache");
+        setStudents(LS.g("ssfp_students",{}));setCashBook(LS.g("ssfp_cashbook",[]));
+        setCategories(LS.g("ssfp_cats",DEF_CATS));setFeeTargets(LS.g("ssfp_targets",{}));
+        setTermCfg(LS.g("ssfp_term",{term:"Term 1",year:"2025/2026",activeCats:DEF_CATS.reduce((a,c)=>({...a,[c]:true}),{})}));
+        setLessonCur(LS.g("ssfp_lesson",{days:{},teacherRate:2500,teacherCount:10}));
+        setSalaries(LS.g("ssfp_sal",[]));setExtExams(LS.g("ssfp_ext",[]));
+        setLessonWeeks(LS.g("ssfp_lw",[]));setDirectPay(LS.g("ssfp_dp",[]));
+        setScholarships(LS.g("ssfp_sch",[]));setAuditLog(LS.g("ssfp_al",[]));setNotifs(LS.g("ssfp_nf",[]));
+        setSchoolProfile(LS.g("ssfp_profile",{name:SCHOOL_NAME,address:"",phone:"",email:"",principal:"",motto:"",stampNote:""}));
+        setAiConfig(LS.g("ssfp_ai",{apiKey:"",model:"google/gemini-2.0-flash-001"}));
       }
     })();
   },[]);
 
-  // ── Settings save ──
-  const saveSettings=useCallback(async(cats,ft,tc,lc)=>{
-    const val={categories:cats,feeTargets:ft,termCfg:tc,lessonCur:lc};
-    try{await sbUpsert("ssfp_settings",[{key:"main",value:val}])}catch{}
-    LS.s("cats",cats);LS.s("targets",ft);LS.s("termCfg",tc);LS.s("lessonCur",lc);
+  const saveAllSettings=useCallback(async(cats,ft,tc,lc,sp,ai)=>{
+    const val={categories:cats,feeTargets:ft,termCfg:tc,lessonCur:lc,schoolProfile:sp,aiConfig:ai};
+    try{await sbU("ssfp_settings",[{key:"main",value:val}])}catch(e){console.warn("Settings save:",e)}
+    LS.s("ssfp_cats",cats);LS.s("ssfp_targets",ft);LS.s("ssfp_term",tc);LS.s("ssfp_lesson",lc);LS.s("ssfp_profile",sp);LS.s("ssfp_ai",ai);
   },[]);
 
-  // ── Cash book ──
-  const saveCashEntry=useCallback(async(entry)=>{
-    const row={entry_id:entry.id,date:entry.date,class_name:entry.cls,student:entry.student,
-      category:entry.category,amount:entry.amount,mode:entry.mode,entry_type:entry.type,
-      timestamp:entry.timestamp,section:entry.section,is_prior_term:entry.isPriorTerm||false,
-      reversed:false,reversal_of:null,note:entry.note||null};
-    try{await sbPost("ssfp_cashbook",row)}catch(e){console.error(e)}
-    setCashBook(prev=>{const n=[...prev,row];LS.s("cashbook",n);return n});
+  const saveCashEntry=useCallback(async(e)=>{
+    const row={entry_id:e.id,date:e.date,class_name:e.cls,student:e.student,category:e.category,amount:e.amount,mode:e.mode,entry_type:e.type,timestamp:e.timestamp,section:e.section,is_prior_term:e.isPriorTerm||false,reversed:false,reversal_of:null,note:e.note||null,receipt_id:e.id};
+    try{await sbP("ssfp_cashbook",row)}catch(err){console.error(err)}
+    setCashBook(p=>{const n=[...p,row];LS.s("ssfp_cashbook",n);return n});
   },[]);
 
   const markReversed=useCallback(async(id)=>{
-    try{await sbPatch("ssfp_cashbook",`entry_id=eq.${id}`,{reversed:true})}catch{}
-    setCashBook(prev=>{const n=prev.map(e=>e.entry_id===id?{...e,reversed:true}:e);LS.s("cashbook",n);return n});
+    try{await sbPA("ssfp_cashbook",`entry_id=eq.${id}`,{reversed:true})}catch{}
+    setCashBook(p=>{const n=p.map(e=>e.entry_id===id?{...e,reversed:true}:e);LS.s("ssfp_cashbook",n);return n});
   },[]);
 
-  // ── Notifs & audit ──
-  const addNotif=useCallback(async(msg,type="warning")=>{
-    const n={nid:uid(),msg,type,time:Date.now(),read:false};
-    try{await sbPost("ssfp_notifications",n)}catch{}
-    setNotifs(prev=>[n,...prev].slice(0,100));
-  },[]);
-
+  // AUDIT — proprietor actions never logged
   const addAudit=useCallback(async(action,details,who)=>{
-    const entry={aid:uid(),action,details,time:Date.now(),user:who||session?.name||"system"};
-    try{await sbPost("ssfp_audit_log",entry)}catch{}
-    setAuditLog(prev=>[entry,...prev].slice(0,500));
-  },[session]);
+    if(!who||who==="proprietor")return; // silent
+    const entry={aid:uid(),action,details,time:Date.now(),user:who};
+    try{await sbP("ssfp_audit_log",entry)}catch{}
+    setAuditLog(p=>[entry,...p].slice(0,500));
+  },[]);
 
-  // ── Student refresh ──
+  const addNotif=useCallback(async(msg,type="warning",skipLog=false)=>{
+    const n={nid:uid(),msg,type,time:Date.now(),read:false};
+    try{await sbP("ssfp_notifications",n)}catch{}
+    setNotifs(p=>[n,...p].slice(0,100));
+  },[]);
+
+  // AI Audit via OpenRouter
+  const runAIAudit=useCallback(async()=>{
+    if(!aiConfig.apiKey)return;
+    const ae=cashBook||[];
+    const ti=ae.filter(e=>e.entry_type==="Income"&&!e.reversed).reduce((s,e)=>s+e.amount,0);
+    const revs=ae.filter(e=>e.reversal_of).length;
+    const dupes=[];const seen={};ae.forEach(e=>{const k=e.student+e.date+e.category+e.amount;if(seen[k])dupes.push(e.entry_id);seen[k]=true});
+    const summary={totalEntries:ae.length,totalIncome:ti,reversals:revs,possibleDuplicates:dupes.length};
+    try{
+      const resp=await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+aiConfig.apiKey},
+        body:JSON.stringify({model:aiConfig.model,max_tokens:300,messages:[{role:"user",content:`You are a school finance auditor. Analyze this summary and flag any concerns in 2-3 sentences: ${JSON.stringify(summary)}. Be concise and specific.`}]})});
+      const data=await resp.json();
+      const text=data?.choices?.[0]?.message?.content||"";
+      if(text)addNotif("AI Audit: "+text,"warning");
+    }catch(e){console.error("AI audit:",e)}
+  },[cashBook,aiConfig,addNotif]);
+
   const refreshStudents=useCallback(async()=>{
     setSyncMsg("Syncing…");setDbOk(null);
     try{
-      const raw=await sbGet("students","select=id,name,class_key,admno,gender&order=name.asc");
+      const raw=await sbG("students","select=id,name,class_key,admno,gender&order=name.asc");
       const mapped={};
-      raw.forEach(s=>{
-        const cls=mapKey(s.class_key);if(!cls)return;
-        if(!mapped[cls])mapped[cls]=[];
-        if(!mapped[cls].find(x=>x.admno===s.admno&&x.name===s.name))
-          mapped[cls].push({name:s.name,admno:s.admno||"",gender:s.gender||"",supaId:s.id,payments:[],arrears:0});
-      });
-      // Re-merge existing payments
-      cashBook.filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{
-        if(!mapped[e.class_name])return;
-        const si=mapped[e.class_name].findIndex(s=>s.name===e.student);
-        if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:e.amount,mode:e.mode,isPriorTerm:e.is_prior_term||false,timestamp:e.timestamp});
-      });
+      raw.forEach(s=>{const cls=mapKey(s.class_key);if(!cls)return;if(!mapped[cls])mapped[cls]=[];if(!mapped[cls].find(x=>x.admno===s.admno&&x.name===s.name))mapped[cls].push({name:s.name,admno:s.admno||"",gender:s.gender||"",supaId:s.id,payments:[],arrears:0})});
+      (cashBook||[]).filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{if(!mapped[e.class_name])return;const si=mapped[e.class_name].findIndex(s=>s.name===e.student);if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:e.amount,mode:e.mode,isPriorTerm:e.is_prior_term||false,timestamp:e.timestamp})});
       setStudents(mapped);setDbOk(true);setSyncMsg(`Synced — ${raw.length} students`);
     }catch(e){setDbOk(false);setSyncMsg("Sync failed")}
   },[cashBook]);
 
-  // ── Update categories etc. and persist ──
-  const updCats=v=>{setCategories(v);saveSettings(v,feeTargets,termCfg,lessonCur)};
-  const updTargets=v=>{setFeeTargets(v);saveSettings(categories,v,termCfg,lessonCur)};
-  const updTermCfg=v=>{setTermCfg(v);saveSettings(categories,feeTargets,v,lessonCur)};
-  const updLessonCur=v=>{setLessonCur(v);saveSettings(categories,feeTargets,termCfg,v)};
+  const saveSal=async s=>{try{await sbP("ssfp_salaries",s)}catch{};setSalaries(p=>{const n=[...p,s];LS.s("ssfp_sal",n);return n})};
+  const saveExt=async e=>{try{await sbP("ssfp_ext_exams",e)}catch{};setExtExams(p=>{const n=[...p,e];LS.s("ssfp_ext",n);return n})};
+  const saveLW=async w=>{try{await sbP("ssfp_lesson_weeks",w)}catch{};setLessonWeeks(p=>{const n=[...p,w];LS.s("ssfp_lw",n);return n})};
+  const saveDP=async d=>{try{await sbP("ssfp_direct_pay",d)}catch{};setDirectPay(p=>{const n=[...p,d];LS.s("ssfp_dp",n);return n})};
+  const saveSch=async s=>{try{await sbP("ssfp_scholarships",s)}catch{};setScholarships(p=>{const n=[...p,s];LS.s("ssfp_sch",n);return n})};
 
-  const saveLW=async w=>{try{await sbPost("ssfp_lesson_weeks",w)}catch{};setLessonWeeks(p=>{const n=[...p,w];LS.s("lessonWeeks",n);return n})};
-  const saveSal=async s=>{try{await sbPost("ssfp_salaries",s)}catch{};setSalaries(p=>{const n=[...p,s];LS.s("salaries",n);return n})};
-  const saveExt=async e=>{try{await sbPost("ssfp_ext_exams",e)}catch{};setExtExams(p=>{const n=[...p,e];LS.s("extExams",n);return n})};
-  const saveDP=async d=>{try{await sbPost("ssfp_direct_pay",d)}catch{};setDirectPay(p=>{const n=[...p,d];LS.s("directPay",n);return n})};
-  const saveSch=async s=>{try{await sbPost("ssfp_scholarships",s)}catch{};setScholarships(p=>{const n=[...p,s];LS.s("scholarships",n);return n})};
-
-  return<Ctx.Provider value={{
-    session,setSession,dbOk,syncMsg,refreshStudents,
-    students,setStudents,cashBook,setCashBook,
-    categories,updCats,feeTargets,updTargets,
-    salaries,extExams,lessonWeeks,lessonCur,updLessonCur,
-    termCfg,updTermCfg,directPay,scholarships,
-    auditLog,notifs,setNotifs,
-    saveCashEntry,markReversed,addNotif,addAudit,
-    saveLW,saveSal,saveExt,saveDP,saveSch,
-  }}>{children}</Ctx.Provider>;
+  return<Ctx.Provider value={{session,setSession,dbOk,syncMsg,refreshStudents,students,setStudents,cashBook,setCashBook,categories,setCategories,feeTargets,setFeeTargets,salaries,extExams,lessonWeeks,lessonCur,setLessonCur,termCfg,setTermCfg,directPay,scholarships,auditLog,notifs,setNotifs,schoolProfile,setSchoolProfile,aiConfig,setAiConfig,saveCashEntry,markReversed,addAudit,addNotif,runAIAudit,saveAllSettings,saveSal,saveExt,saveLW,saveDP,saveSch}}>{children}</Ctx.Provider>;
 }
 const useApp=()=>useContext(Ctx);
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 // ROOT
-// ═══════════════════════════════════════════════════
-function App(){
-  const{session,dbOk}=useApp();
-  if(dbOk===null)return<Loader/>;
-  if(!session)return<AuthGate/>;
-  return<Portal/>;
-}
+// ══════════════════════════════════════════════════
+function App(){const{session,dbOk}=useApp();if(dbOk===null)return<Splash/>;if(!session)return<AuthGate/>;return<Portal/>;}
+function Splash(){return<div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"var(--navy)"}}>
+  <div style={{textAlign:"center"}}>
+    <div style={{width:36,height:36,border:"3px solid rgba(201,168,76,.3)",borderTopColor:"var(--gold)",borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto"}}/>
+    <p style={{color:"rgba(255,255,255,.5)",marginTop:16,fontSize:".8rem",letterSpacing:.5}}>{SCHOOL_SHORT}</p>
+  </div></div>;}
 
-function Loader(){
-  return<div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"var(--bg)"}}>
-    <div style={{textAlign:"center"}}>
-      <div style={{width:34,height:34,border:"3px solid var(--border)",borderTopColor:"var(--accent)",borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto"}}/>
-      <p style={{color:"var(--muted)",marginTop:14,fontSize:".82rem",letterSpacing:.5}}>Connecting to database…</p>
-    </div>
-  </div>;
-}
-
-// ═══════════════════════════════════════════════════
-// AUTH GATE — Username + PIN
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// AUTH GATE
+// ══════════════════════════════════════════════════
 function AuthGate(){
   const{setSession,dbOk,syncMsg,addAudit}=useApp();
-  const[step,setStep]=useState("username"); // username | pin
-  const[username,setUsername]=useState("");
+  const[step,setStep]=useState("user");
+  const[uname,setUname]=useState("");
   const[pin,setPin]=useState("");
   const[users,setUsers]=useState([]);
   const[err,setErr]=useState("");
   const[loading,setLoading]=useState(false);
-  const[shakeKey,setShakeKey]=useState(0);
-  const pinRef=useRef();
+  const[shk,setShk]=useState(0);
 
-  // Load approved users from Supabase
-  useEffect(()=>{
-    (async()=>{try{const r=await sbGet("ssfp_users","is_active=eq.true&order=name.asc");setUsers(r)}catch{setUsers(LS.g("users",[]))}})();
-  },[]);
+  useEffect(()=>{(async()=>{try{const r=await sbG("ssfp_users","is_active=eq.true&order=name.asc");setUsers(r)}catch{setUsers(LS.g("ssfp_users",[]))}})()},[]);
 
-  async function checkUsername(){
-    const u=username.trim().toLowerCase();
+  async function nextStep(){
+    const u=uname.trim().toLowerCase();
     if(!u){setErr("Enter your username.");return}
-    // Check superadmin
-    if(u===SUPER.username){setStep("pin");setErr("");return}
-    // Check DB users
+    if(u===PROP_USER){setStep("pin");setErr("");return}
     const found=users.find(x=>x.username.toLowerCase()===u);
-    if(!found){setErr("Username not recognised. Contact Admin.");setShakeKey(k=>k+1);return}
-    if(!found.is_active){setErr("Account disabled. Contact Admin.");return}
+    if(!found){setErr("Username not found. Contact admin.");setShk(k=>k+1);return}
+    if(!found.is_active){setErr("Account is disabled.");return}
     setStep("pin");setErr("");
   }
 
-  function addDigit(d){
-    if(pin.length>=6)return;
-    const np=pin+d;
-    setPin(np);
-    if(np.length===6)setTimeout(()=>verify(np),80);
-  }
-  function delDigit(){setPin(p=>p.slice(0,-1))}
+  function digit(d){if(pin.length>=6)return;const np=pin+d;setPin(np);if(np.length===6)setTimeout(()=>verify(np),80)}
+  function del(){setPin(p=>p.slice(0,-1))}
 
   async function verify(p){
     setLoading(true);setErr("");
-    const u=username.trim().toLowerCase();
+    const u=uname.trim().toLowerCase();
     try{
-      // SuperAdmin check
-      if(u===SUPER.username){
-        const ok=await checkSuperPin(p);
-        if(ok){
-          setSession({...SUPER,isSuperAdmin:true});
-          addAudit("LOGIN","SuperAdmin login","SuperAdmin");
-          return;
-        }else{setErr("Incorrect PIN.");setPin("");setShakeKey(k=>k+1);setLoading(false);return}
+      if(u===PROP_USER){
+        const ok=await checkPropPin(p);
+        if(ok){setSession({user:PROP_USER,role:"admin",section:"both",name:"Admin",isProp:true});return}
+        else{setErr("Incorrect PIN.");setPin("");setShk(k=>k+1);setLoading(false);return}
       }
-      // Regular user
       const found=users.find(x=>x.username.toLowerCase()===u);
       if(!found){setErr("User not found.");setPin("");setLoading(false);return}
-      const hash=await hashPin(p,u);
-      if(hash!==found.pin_hash){setErr("Incorrect PIN.");setPin("");setShakeKey(k=>k+1);setLoading(false);return}
-      setSession({user:found.username,role:found.role,section:found.section,name:found.name,isSuperAdmin:false});
-      addAudit("LOGIN",`${found.name} (${found.role}) logged in`,found.name);
-    }catch(e){setErr("Authentication error.");setPin("");}
+      const h=await hashPin(p,u);
+      if(h!==found.pin_hash){setErr("Incorrect PIN.");setPin("");setShk(k=>k+1);setLoading(false);return}
+      setSession({user:found.username,role:found.role,section:found.section,name:found.name,isProp:false});
+      addAudit("LOGIN",`${found.name} logged in`,found.name);
+    }catch(e){setErr("Error. Try again.");setPin("");}
     setLoading(false);
   }
 
-  return(
-    <div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"linear-gradient(145deg,var(--bg),var(--bg2))",padding:20}}>
-      <div className="fi" style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:"32px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"var(--sh2)"}}>
-        <div style={{display:"inline-block",fontFamily:"var(--ff-d)",fontSize:24,fontWeight:700,color:"var(--headerText)",background:"var(--header)",borderRadius:6,padding:"8px 22px",marginBottom:12,letterSpacing:3}}>SSFP</div>
-        <h1 style={{fontFamily:"var(--ff-d)",fontSize:"1.1rem",color:"var(--ink)",margin:"0 0 4px"}}>Sovereign School Finance Portal</h1>
-        <div style={{fontSize:".7rem",color:"var(--muted)",marginBottom:20}}>
-          <span className={"dot "+(dbOk===null?"dld":dbOk?"dok":"derr")}/>{syncMsg}
-        </div>
-
-        {step==="username"&&(
-          <div key={"us"+shakeKey} className={shakeKey?"shake":""}>
-            <div className="fl" style={{marginBottom:12,textAlign:"left"}}>
-              <span className="flb">Username</span>
-              <input className="inp" value={username} onChange={e=>setUsername(e.target.value)} placeholder="Enter your username" autoFocus
-                onKeyDown={e=>e.key==="Enter"&&checkUsername()} style={{textAlign:"center",fontFamily:"var(--ff-m)"}}/>
-            </div>
-            {err&&<div className="me">{err}</div>}
-            <button className="btn bp" style={{width:"100%"}} onClick={checkUsername}>CONTINUE</button>
-          </div>
-        )}
-
-        {step==="pin"&&(
-          <div>
-            <p style={{fontSize:".8rem",color:"var(--muted)",marginBottom:4}}>Welcome — enter your 6-digit PIN</p>
-            <p style={{fontFamily:"var(--ff-m)",fontSize:".9rem",fontWeight:700,marginBottom:8}}>{username}</p>
-            {/* PIN dots */}
-            <div key={"pin"+shakeKey} className={shakeKey?"pin-dots shake":"pin-dots"}>
-              {[0,1,2,3,4,5].map(i=><div key={i} className={"pin-dot"+(i<pin.length?" filled":"")}/>)}
-            </div>
-            {err&&<div className="me" style={{fontSize:".75rem"}}>{err}</div>}
-            {loading?<div style={{padding:16,color:"var(--muted)",fontSize:".8rem"}}>Verifying…</div>:(
-              <>
-                <div className="pin-pad">
-                  {[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map((d,i)=>(
-                    <button key={i} className="pin-btn"
-                      onClick={()=>d==="⌫"?delDigit():d!==""&&addDigit(d.toString())}
-                      style={{opacity:d===""?0:1,cursor:d===""?"default":"pointer"}}>
-                      {d}
-                    </button>
-                  ))}
-                </div>
-                <button className="btn bgh bs" style={{marginTop:14,width:"100%"}} onClick={()=>{setStep("username");setPin("");setErr("")}}>← Back</button>
-              </>
-            )}
-          </div>
-        )}
+  return<div className="login-bg">
+    <div className="login-card fu">
+      <div className="login-logo">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
       </div>
+      <div className="login-school">{SCHOOL_NAME}</div>
+      <div className="login-tagline">Finance Management Portal</div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5,fontSize:".7rem",color:"var(--muted)",marginBottom:20}}>
+        <span className={"dot "+(dbOk===null?"dld":dbOk?"dok":"derr")}/>{syncMsg}
+      </div>
+
+      {step==="user"&&<div key={"u"+shk} className={shk?"shake":""}>
+        <div className="fl" style={{marginBottom:12}}>
+          <span className="flb">Username</span>
+          <input className="inp" value={uname} onChange={e=>setUname(e.target.value)} placeholder="Enter your username" autoFocus onKeyDown={e=>e.key==="Enter"&&nextStep()} style={{textAlign:"center",fontFamily:"var(--ff-m)"}}/>
+        </div>
+        {err&&<div className="msg-err">⚠ {err}</div>}
+        <button className="btn btn-primary" style={{width:"100%"}} onClick={nextStep}>CONTINUE →</button>
+      </div>}
+
+      {step==="pin"&&<div>
+        <p style={{fontSize:".78rem",color:"var(--muted)",textAlign:"center",marginBottom:4}}>Enter your 6-digit PIN</p>
+        <p style={{fontFamily:"var(--ff-m)",fontSize:".85rem",fontWeight:700,color:"var(--navy)",textAlign:"center",marginBottom:8}}>{uname}</p>
+        <div key={"p"+shk} className={shk?"pin-dots shake":"pin-dots"}>{[0,1,2,3,4,5].map(i=><div key={i} className={"pin-dot"+(i<pin.length?" f":"")}/>)}</div>
+        {err&&<div className="msg-err" style={{marginBottom:8}}>⚠ {err}</div>}
+        {loading?<div style={{textAlign:"center",padding:16,color:"var(--muted)",fontSize:".8rem"}}>Verifying…</div>:<>
+          <div className="pin-pad">{[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map((d,i)=><button key={i} className="pin-btn" onClick={()=>d==="⌫"?del():d!==""&&digit(d.toString())} style={{opacity:d===""?0:1,cursor:d===""?"default":"pointer"}}>{d}</button>)}</div>
+          <button className="btn btn-ghost btn-sm" style={{width:"100%",marginTop:12,justifyContent:"center"}} onClick={()=>{setStep("user");setPin("");setErr("")}}>← Back</button>
+        </>}
+      </div>}
     </div>
-  );
+  </div>;
 }
 
-// ═══════════════════════════════════════════════════
-// PORTAL SHELL
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// PORTAL
+// ══════════════════════════════════════════════════
 function Portal(){
-  const{session,setSession,notifs,setNotifs,dbOk,syncMsg,refreshStudents,addAudit}=useApp();
+  const{session,setSession,notifs,setNotifs,dbOk,syncMsg,refreshStudents,addAudit,runAIAudit}=useApp();
   const isAdmin=session?.role==="admin";
+  const isProp=session?.isProp||false;
   const[tab,setTab]=useState("cashbook");
   const[sec,setSec]=useState(session?.section==="B"?"B":"A");
   const[showN,setShowN]=useState(false);
@@ -554,324 +538,176 @@ function Portal(){
     {id:"ledgers",l:"Ledgers",i:"👤"},
     {id:"analysis",l:"Analysis",i:"📋"},
     {id:"lessons",l:"Lessons",i:"📅"},
-    ...(isAdmin?[
-      {id:"dash",l:"Dashboard",i:"📊"},
-      {id:"acct",l:"Accounting",i:"🏦"},
-      {id:"sal",l:"Salaries",i:"💰"},
-      {id:"exam",l:"Ext. Exams",i:"📝"},
-      {id:"users",l:"Users",i:"🔐"},
-      {id:"set",l:"Settings",i:"⚙️"},
-    ]:[]),
+    ...(isAdmin?[{id:"dash",l:"Dashboard",i:"📊"},{id:"acct",l:"Accounting",i:"🏦"},{id:"sal",l:"Salaries",i:"💰"},{id:"exam",l:"Ext. Exams",i:"📝"},{id:"users",l:"Users",i:"🔐"},{id:"set",l:"Settings",i:"⚙️"}]:[]),
   ];
 
-  function doLogout(){
-    addAudit("LOGOUT",`${session.name} logged out`,session.name);
-    setSession(null);
-  }
+  function logout(){if(!isProp)addAudit("LOGOUT",`${session.name} logged out`,session.name);setSession(null)}
 
-  return(
-    <div style={{minHeight:"100vh",background:"var(--bg)"}}>
-      <header className="np" style={{background:"var(--header)",color:"var(--headerText)",display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 14px",flexWrap:"wrap",gap:8}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <span style={{fontFamily:"var(--ff-d)",fontSize:15,fontWeight:700,background:"var(--accent)",padding:"3px 10px",borderRadius:4,letterSpacing:2}}>SSFP</span>
-          <span style={{fontSize:".66rem",opacity:.6}}><span className={"dot "+(dbOk===null?"dld":dbOk?"dok":"derr")}/>{dbOk?"Live":"Offline"}</span>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-          {isAdmin&&<div style={{display:"flex",borderRadius:4,overflow:"hidden",border:"1px solid var(--accent2)"}}>
-            {["A","B"].map(s=><button key={s} onClick={()=>setSec(s)} style={{background:sec===s?"var(--accent)":"transparent",color:"var(--headerText)",border:"none",padding:"3px 11px",fontSize:".7rem",cursor:"pointer",fontWeight:sec===s?700:400}}>Sec {s}</button>)}
-          </div>}
-          <button onClick={refreshStudents} style={{background:"transparent",border:"1px solid rgba(255,255,255,.15)",color:"#fff",padding:"3px 10px",borderRadius:4,cursor:"pointer",fontSize:".7rem"}}>↻ Sync</button>
-          {isAdmin&&<div style={{position:"relative"}}>
-            <button onClick={()=>setShowN(!showN)} style={{background:"transparent",border:"1px solid rgba(255,255,255,.15)",color:"#fff",padding:"3px 10px",borderRadius:4,cursor:"pointer",fontSize:".78rem",position:"relative"}}>
-              🔔{ur>0&&<span className="nd"/>}
-            </button>
-            {showN&&<NPanel close={()=>setShowN(false)}/>}
-          </div>}
-          <span className="badge" style={{background:"rgba(255,255,255,.1)",color:"var(--headerText)"}}>{session.name}</span>
-          {session.isSuperAdmin&&<span className="badge bdo">SuperAdmin</span>}
-          <button onClick={doLogout} style={{background:"transparent",color:"var(--headerText)",border:"1px solid rgba(255,255,255,.15)",padding:"3px 11px",borderRadius:4,fontSize:".7rem",cursor:"pointer"}}>Logout</button>
-        </div>
-      </header>
-      <nav className="np" style={{display:"flex",background:"var(--navBg)",padding:"0 6px",overflowX:"auto",gap:1}}>
-        {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{background:tab===t.id?"rgba(255,255,255,.06)":"transparent",color:tab===t.id?"#fff":"rgba(255,255,255,.4)",border:"none",padding:"8px 13px",fontSize:".74rem",cursor:"pointer",whiteSpace:"nowrap",borderBottom:tab===t.id?"2px solid var(--accent)":"2px solid transparent",fontWeight:tab===t.id?600:400}}>
-          <span style={{marginRight:4}}>{t.i}</span>{t.l}
-        </button>)}
-      </nav>
-      <main style={{padding:14,maxWidth:1120,margin:"0 auto"}}>
-        {tab==="cashbook"&&<CashBook sec={sec}/>}
-        {tab==="classes"&&<ClassPortal sec={sec}/>}
-        {tab==="ledgers"&&<Ledgers sec={sec}/>}
-        {tab==="analysis"&&<Analysis sec={sec}/>}
-        {tab==="lessons"&&<Lessons/>}
-        {tab==="dash"&&isAdmin&&<Dash/>}
-        {tab==="acct"&&isAdmin&&<Acct/>}
-        {tab==="sal"&&isAdmin&&<Sal/>}
-        {tab==="exam"&&isAdmin&&<ExamPortal/>}
-        {tab==="users"&&isAdmin&&<UserMgmt/>}
-        {tab==="set"&&isAdmin&&<Settings/>}
-      </main>
-    </div>
-  );
+  return<div style={{minHeight:"100vh",background:"var(--bg)"}}>
+    <header className="hdr np">
+      <div className="hdr-brand">
+        <div className="hdr-logo">WTS</div>
+        <div><div className="hdr-school">{SCHOOL_SHORT}</div><div style={{fontSize:".6rem",opacity:.5,letterSpacing:.3}}>Finance Portal</div></div>
+      </div>
+      <div className="hdr-right">
+        {isAdmin&&<div className="sec-toggle">
+          {["A","B"].map(s=><button key={s} className={"sec-btn"+(sec===s?" a":"")} onClick={()=>setSec(s)}>Sec {s}</button>)}
+        </div>}
+        <button className="icon-btn" onClick={refreshStudents} title="Sync students">↻</button>
+        {isAdmin&&<div style={{position:"relative"}}>
+          <button className="icon-btn" onClick={()=>setShowN(!showN)}>🔔{ur>0&&<span className="nd"/>}</button>
+          {showN&&<NPanel close={()=>setShowN(false)}/>}
+        </div>}
+        {isAdmin&&<button className="icon-btn" onClick={runAIAudit} title="Run AI audit"><span className="ai-badge">✦ AI</span></button>}
+        <span className="badge bdn" style={{fontSize:".65rem"}}>{session.name}</span>
+        <button className="icon-btn" onClick={logout}>Exit</button>
+      </div>
+    </header>
+    <nav className="nav np">
+      {tabs.map(t=><button key={t.id} className={"nav-btn"+(tab===t.id?" a":"")} onClick={()=>setTab(t.id)}><span>{t.i}</span>{t.l}</button>)}
+    </nav>
+    <main style={{padding:"16px",maxWidth:1100,margin:"0 auto"}}>
+      {tab==="cashbook"&&<CashBook sec={sec}/>}
+      {tab==="classes"&&<ClassPortal sec={sec}/>}
+      {tab==="ledgers"&&<Ledgers sec={sec}/>}
+      {tab==="analysis"&&<Analysis sec={sec}/>}
+      {tab==="lessons"&&<Lessons/>}
+      {tab==="dash"&&isAdmin&&<Dash/>}
+      {tab==="acct"&&isAdmin&&<Acct/>}
+      {tab==="sal"&&isAdmin&&<Sal/>}
+      {tab==="exam"&&isAdmin&&<ExamPortal/>}
+      {tab==="users"&&isAdmin&&<UserMgmt/>}
+      {tab==="set"&&isAdmin&&<Settings/>}
+    </main>
+  </div>;
 }
 
 function NPanel({close}){
   const{notifs,setNotifs}=useApp();
-  const mr=id=>{const u=(notifs||[]).map(n=>n.nid===id?{...n,read:true}:n);setNotifs(u);try{sbPatch("ssfp_notifications",`nid=eq.${id}`,{read:true})}catch{}};
-  return<div className="np2">
-    <div style={{padding:"9px 14px",fontWeight:600,borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",fontSize:".82rem"}}>
-      <span>Audit Alerts</span><button onClick={close} style={{background:"none",border:"none",cursor:"pointer"}}>✕</button>
+  const mr=id=>{const u=(notifs||[]).map(n=>n.nid===id?{...n,read:true}:n);setNotifs(u);try{sbPA("ssfp_notifications",`nid=eq.${id}`,{read:true})}catch{}};
+  return<div className="npanel">
+    <div style={{padding:"10px 16px",fontWeight:700,borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",fontSize:".82rem",color:"var(--navy)"}}>
+      <span>Alerts & AI Notifications</span><button onClick={close} style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)"}}>✕</button>
     </div>
     {(!notifs||notifs.length===0)&&<div className="er">No alerts</div>}
     {(notifs||[]).slice(0,30).map(n=><div key={n.nid} className={"ni"+(n.read?"":" ur")} onClick={()=>mr(n.nid)}>
-      <div style={{fontWeight:n.read?400:600}}>{n.type==="error"?"🚨":"⚠️"} {n.msg}</div>
-      <div style={{fontSize:".66rem",color:"var(--muted)",marginTop:2}}>{new Date(n.time).toLocaleString()}</div>
+      <div style={{fontWeight:n.read?400:600,color:"var(--ink)"}}>{n.type==="error"?"🚨":"⚠️"} {n.msg}</div>
+      <div style={{fontSize:".66rem",color:"var(--muted)",marginTop:3}}>{new Date(n.time).toLocaleString()}</div>
     </div>)}
   </div>;
 }
 
-// ═══════════════════════════════════════════════════
-// USER MANAGEMENT (Admin only)
-// ═══════════════════════════════════════════════════
-function UserMgmt(){
-  const{session,addAudit}=useApp();
-  const[users,setUsers]=useState([]);
-  const[form,setForm]=useState({name:"",username:"",role:"bursarA",section:"A",pin:"",pin2:""});
-  const[msg,setMsg]=useState(null);
-  const[loading,setLoading]=useState(true);
-
-  useEffect(()=>{
-    (async()=>{try{const r=await sbGet("ssfp_users","order=name.asc");setUsers(r)}catch{setUsers(LS.g("users",[]))}setLoading(false)})();
-  },[]);
-
-  async function addUser(){
-    if(!form.name.trim()||!form.username.trim()||!form.pin){setMsg({t:1,m:"Fill name, username and PIN."});return}
-    if(form.pin!==form.pin2){setMsg({t:1,m:"PINs do not match."});return}
-    if(form.pin.length<4){setMsg({t:1,m:"PIN must be at least 4 digits."});return}
-    if(!/^\d+$/.test(form.pin)){setMsg({t:1,m:"PIN must be numbers only."});return}
-    if(form.username.trim().toLowerCase()===SUPER.username){setMsg({t:1,m:"That username is reserved."});return}
-    if(users.find(u=>u.username.toLowerCase()===form.username.trim().toLowerCase())){setMsg({t:1,m:"Username already exists."});return}
-    const hash=await hashPin(form.pin,form.username.trim().toLowerCase());
-    const newUser={uid:uid(),name:form.name.trim(),username:form.username.trim().toLowerCase(),role:form.role,section:form.section,pin_hash:hash,is_active:true,created_by:session.name,created_at:new Date().toISOString()};
-    try{await sbPost("ssfp_users",newUser)}catch(e){console.error(e)}
-    const up=[...users,newUser];setUsers(up);LS.s("users",up);
-    addAudit("ADD_USER",`Created user ${newUser.username} (${newUser.role})`,session.name);
-    setForm({name:"",username:"",role:"bursarA",section:"A",pin:"",pin2:""});
-    setMsg({t:0,m:`User "${newUser.username}" created successfully.`});setTimeout(()=>setMsg(null),3e3);
-  }
-
-  async function toggleUser(uid,active){
-    try{await sbPatch("ssfp_users",`uid=eq.${uid}`,{is_active:active})}catch{}
-    setUsers(p=>p.map(u=>u.uid===uid?{...u,is_active:active}:u));
-    addAudit(active?"ENABLE_USER":"DISABLE_USER",`User ${uid}`,session.name);
-  }
-
-  async function resetPin(u){
-    const newPin=prompt(`Enter new PIN for ${u.name}:`);
-    if(!newPin||!/^\d{4,8}$/.test(newPin)){alert("PIN must be 4-8 digits.");return}
-    const hash=await hashPin(newPin,u.username);
-    try{await sbPatch("ssfp_users",`uid=eq.${u.uid}`,{pin_hash:hash})}catch{}
-    setUsers(p=>p.map(x=>x.uid===u.uid?{...x,pin_hash:hash}:x));
-    addAudit("RESET_PIN",`PIN reset for ${u.username}`,session.name);
-    alert("PIN updated.");
-  }
-
-  return<div className="fi">
-    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.2rem",marginBottom:14}}>🔐 User Management</h2>
-    {msg&&<div className={msg.t?"me":"mo"}>{msg.m}</div>}
-    <div className="card" style={{borderLeft:"4px solid var(--red)"}}>
-      <div className="ct">SuperAdmin Account</div>
-      <p style={{fontSize:".8rem",color:"var(--muted)"}}>The SuperAdmin (proprietor) account is hardcoded in the system. It does not appear in this list and cannot be created, modified, or deleted from here. Username: <strong style={{fontFamily:"var(--ff-m)"}}>{SUPER.username}</strong>. PIN is set directly in the source file.</p>
-    </div>
-    <div className="card">
-      <div className="ct">Add Authorised User</div>
-      <div className="gf">
-        <div className="fl"><span className="flb">Full Name</span><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} className="inp" placeholder="Staff full name"/></div>
-        <div className="fl"><span className="flb">Username</span><input value={form.username} onChange={e=>setForm({...form,username:e.target.value})} className="inp" placeholder="e.g. mrs.adeyemi"/></div>
-        <div className="fl"><span className="flb">Role</span><select value={form.role} onChange={e=>setForm({...form,role:e.target.value})} className="sel">
-          <option value="admin">Administrator</option>
-          <option value="bursarA">Bursar — Section A</option>
-          <option value="bursarB">Bursar — Section B</option>
-        </select></div>
-        <div className="fl"><span className="flb">Section Access</span><select value={form.section} onChange={e=>setForm({...form,section:e.target.value})} className="sel">
-          <option value="A">Section A only</option>
-          <option value="B">Section B only</option>
-          <option value="both">Both Sections</option>
-        </select></div>
-        <div className="fl"><span className="flb">PIN (digits only)</span><input type="password" inputMode="numeric" maxLength={8} value={form.pin} onChange={e=>setForm({...form,pin:e.target.value.replace(/\D/g,"")})} className="inp" placeholder="4–8 digit PIN"/></div>
-        <div className="fl"><span className="flb">Confirm PIN</span><input type="password" inputMode="numeric" maxLength={8} value={form.pin2} onChange={e=>setForm({...form,pin2:e.target.value.replace(/\D/g,"")})} className="inp" placeholder="Repeat PIN"/></div>
-      </div>
-      <button className="btn bp" style={{marginTop:12}} onClick={addUser}>CREATE USER</button>
-      <p className="hint" style={{marginTop:6}}>PINs are hashed before storage — never stored in plain text.</p>
-    </div>
-    <div className="card">
-      <div className="ct">Authorised Users ({users.length})</div>
-      {loading?<p className="hint">Loading…</p>:
-      <div className="tw"><table><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Section</th><th>Status</th><th>Actions</th></tr></thead>
-      <tbody>
-        {users.length===0&&<tr><td colSpan={6} className="er">No users yet. Add one above.</td></tr>}
-        {users.map(u=><tr key={u.uid}>
-          <td style={{fontWeight:500}}>{u.name}</td>
-          <td className="mn">{u.username}</td>
-          <td><span className={"badge "+(u.role==="admin"?"bdr":u.role==="bursarA"?"bdb":"bdg")}>{u.role}</span></td>
-          <td>{u.section}</td>
-          <td>{u.is_active?<span className="badge bdg">Active</span>:<span className="badge bdr">Disabled</span>}</td>
-          <td style={{display:"flex",gap:5}}>
-            <button className={"btn bs "+(u.is_active?"br":"bg2")} onClick={()=>toggleUser(u.uid,!u.is_active)}>{u.is_active?"Disable":"Enable"}</button>
-            <button className="btn bgh bs" onClick={()=>resetPin(u)}>Reset PIN</button>
-          </td>
-        </tr>)}
-      </tbody></table></div>}
-    </div>
-  </div>;
-}
-
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 // CASH BOOK
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 function CashBook({sec}){
   const ctx=useApp();
-  const session=ctx.session;
   const classes=sec==="A"?SEC_A:SEC_B;
   const entries=useMemo(()=>(ctx.cashBook||[]).filter(e=>e.section===sec).sort((a,b)=>(a.date||"").localeCompare(b.date||"")||a.timestamp-b.timestamp),[ctx.cashBook,sec]);
   const activeCats=(ctx.categories||DEF_CATS).filter(c=>ctx.termCfg?.activeCats?.[c]!==false);
-
-  const[date,setDate]=useState(today());
-  const[cl,setCl]=useState("");
-  const[stu,setStu]=useState("");
-  const[cat,setCat]=useState("");
-  const[amt,setAmt]=useState("");
-  const[mode,setMode]=useState("Cash");
-  const[type,setType]=useState("Income");
-  const[fd,setFd]=useState(today());
-  const[showR,setShowR]=useState(false);
-  const[rId,setRId]=useState("");
-  const[msg,setMsg]=useState(null);
-
+  const[date,setDate]=useState(today());const[cl,setCl]=useState("");const[stu,setStu]=useState("");const[cat,setCat]=useState("");const[amt,setAmt]=useState("");const[mode,setMode]=useState("Cash");const[type,setType]=useState("Income");const[fd,setFd]=useState(today());const[showR,setShowR]=useState(false);const[rId,setRId]=useState("");const[msg,setMsg]=useState(null);const[saving,setSaving]=useState(false);
   const stuList=useMemo(()=>(cl&&ctx.students[cl])?[...ctx.students[cl]].sort((a,b)=>a.name.localeCompare(b.name)).map(s=>s.name):[],[cl,ctx.students]);
-
-  const{op,clBal,dayE}=useMemo(()=>{
-    let o=0;
-    for(const e of entries)if(e.date<fd)o+=e.entry_type==="Income"?e.amount:-e.amount;
-    const de=entries.filter(e=>e.date===fd);
-    let c=o;for(const e of de)c+=e.entry_type==="Income"?e.amount:-e.amount;
-    return{op:o,clBal:c,dayE:de};
-  },[entries,fd]);
-
+  const{op,clBal,dayE}=useMemo(()=>{let o=0;for(const e of entries)if(e.date<fd)o+=e.entry_type==="Income"?e.amount:-e.amount;const de=entries.filter(e=>e.date===fd);let c=o;for(const e of de)c+=e.entry_type==="Income"?e.amount:-e.amount;return{op:o,clBal:c,dayE:de}},[entries,fd]);
   const liq=useMemo(()=>(ctx.cashBook||[]).filter(e=>e.section===sec).reduce((s,e)=>s+(e.entry_type==="Income"?e.amount:-e.amount),0),[ctx.cashBook,sec]);
 
   async function submit(){
-    if(!cl||!stu||!cat||!amt||isNaN(parseFloat(amt))){setMsg({t:1,m:"Fill all fields."});return}
+    if(!cl||!stu||!cat||!amt||isNaN(parseFloat(amt))){setMsg({t:1,m:"Fill all required fields."});return}
     const a=Math.abs(parseFloat(parseFloat(amt).toFixed(2)));
-    if(a<=0){setMsg({t:1,m:"Amount must be > 0."});return}
+    if(a<=0){setMsg({t:1,m:"Amount must be greater than zero."});return}
+    setSaving(true);
     const eid=uid();
     await ctx.saveCashEntry({id:eid,date,cls:cl,student:stu,category:cat,amount:a,mode,type,timestamp:Date.now(),section:sec,isPriorTerm:cat==="Outstanding/Backlog"});
-    // Update local student payments immediately
     if(type==="Income"){
       const up={...ctx.students};
-      if(up[cl]){
-        const idx=up[cl].findIndex(s=>s.name===stu);
-        if(idx>=0){
-          const copy=[...up[cl]];
-          copy[idx]={...copy[idx],payments:[...copy[idx].payments,{id:eid,date,category:cat,amount:a,mode,isPriorTerm:cat==="Outstanding/Backlog",timestamp:Date.now()}]};
-          up[cl]=copy;ctx.setStudents(up);
-        }
-      }
+      if(up[cl]){const idx=up[cl].findIndex(s=>s.name===stu);if(idx>=0){const cp=[...up[cl]];cp[idx]={...cp[idx],payments:[...cp[idx].payments,{id:eid,date,category:cat,amount:a,mode,isPriorTerm:cat==="Outstanding/Backlog",timestamp:Date.now(),receiptId:eid}]};up[cl]=cp;ctx.setStudents(up)}}
     }
-    ctx.addAudit("ENTRY",`${type} ${N(a)} — ${stu} [${cat}]`,session.name);
-    if(a>500000)ctx.addNotif(`Large ${type.toLowerCase()} ${N(a)} for ${stu} in ${cl}. Verify.`);
-    setAmt("");setCat("");setStu("");
-    setMsg({t:0,m:`${type} ${N(a)} for ${stu} saved.`});setTimeout(()=>setMsg(null),3e3);
+    if(!ctx.session?.isProp)ctx.addAudit("ENTRY",`${type} ${N(a)} — ${stu} [${cat}]`,ctx.session?.name);
+    if(a>500000)ctx.addNotif(`Large ${type.toLowerCase()} of ${N(a)} for ${stu} in ${cl}. Verify.`);
+    setAmt("");setCat("");setStu("");setSaving(false);
+    setMsg({t:0,m:`✓ ${type} of ${N(a)} for ${stu} saved.`});setTimeout(()=>setMsg(null),4e3);
   }
 
   async function doRev(){
     const orig=(ctx.cashBook||[]).find(e=>e.entry_id===rId);
     if(!orig){setMsg({t:1,m:"Entry ID not found."});return}
-    if(orig.reversed){setMsg({t:1,m:"Already reversed."});return}
+    if(orig.reversed){setMsg({t:1,m:"Entry already reversed."});return}
     const eid=uid();
     await ctx.markReversed(orig.entry_id);
     await ctx.saveCashEntry({id:eid,date:today(),cls:orig.class_name,student:orig.student,category:orig.category,amount:orig.amount,mode:orig.mode,type:orig.entry_type==="Income"?"Expense":"Income",timestamp:Date.now(),section:orig.section,isPriorTerm:orig.is_prior_term,note:"Reversal of "+orig.entry_id});
-    // Update student ledger
-    if(orig.entry_type==="Income"){
-      const up={...ctx.students};const c=orig.class_name;
-      if(up[c]){const i=up[c].findIndex(s=>s.name===orig.student);
-        if(i>=0){const cp=[...up[c]];cp[i]={...cp[i],payments:[...cp[i].payments,{id:eid,date:today(),category:orig.category,amount:-orig.amount,mode:orig.mode,note:"Reversal",timestamp:Date.now()}]};up[c]=cp;ctx.setStudents(up)}}
-    }
-    ctx.addAudit("REVERSAL",`Reversed ${orig.entry_id.slice(0,8)} (${N(orig.amount)} ${orig.student})`,session.name);
-    ctx.addNotif(`Reversal: ${N(orig.amount)} for ${orig.student}. Entry ${orig.entry_id.slice(0,8)}.`);
+    if(orig.entry_type==="Income"){const up={...ctx.students};const c=orig.class_name;if(up[c]){const i=up[c].findIndex(s=>s.name===orig.student);if(i>=0){const cp=[...up[c]];cp[i]={...cp[i],payments:[...cp[i].payments,{id:eid,date:today(),category:orig.category,amount:-orig.amount,mode:orig.mode,note:"Reversal",timestamp:Date.now()}]};up[c]=cp;ctx.setStudents(up)}}}
+    ctx.addAudit("REVERSAL",`Reversed ${orig.entry_id.slice(0,8)} (${N(orig.amount)} — ${orig.student})`,ctx.session?.name);
+    ctx.addNotif(`Reversal posted: ${N(orig.amount)} for ${orig.student}.`);
     setRId("");setShowR(false);setMsg({t:0,m:"Reversal posted."});setTimeout(()=>setMsg(null),3e3);
   }
 
-  return<div className="fi">
-    <div className="fb" style={{marginBottom:12}}>
-      <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.1rem"}}>📒 Cash Book — Section {sec}</h2>
-      <div style={{fontFamily:"var(--ff-m)",fontSize:".76rem",background:"var(--card)",border:"1px solid var(--border)",padding:"4px 11px",borderRadius:4}}>Liquidity: <strong style={{color:liq>=0?"var(--green)":"var(--red)"}}>{N(liq)}</strong></div>
+  return<div className="fu">
+    <div className="fb" style={{marginBottom:16}}>
+      <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)"}}>Daily Cash Book — Section {sec}</h2>
+      <div style={{fontFamily:"var(--ff-m)",fontSize:".78rem",background:"var(--card)",border:"1px solid var(--border)",padding:"6px 14px",borderRadius:20,boxShadow:"var(--sh)"}}>
+        Liquidity: <strong style={{color:liq>=0?"var(--green)":"var(--red)"}}>{N(liq)}</strong>
+      </div>
     </div>
-    {msg&&<div className={msg.t?"me":"mo"}>{msg.m}</div>}
-    <div className="card"><div className="ct">New Entry</div>
-      <div className="gf">
+    {msg&&<div className={msg.t?"msg-err":"msg-ok"}>{msg.m}</div>}
+    <div className="card">
+      <div className="sect">New Entry</div>
+      <div className="gf2">
         <div className="fl"><span className="flb">Date</span><input type="date" value={date} onChange={e=>setDate(e.target.value)} className="inp"/></div>
-        <div className="fl"><span className="flb">Type</span>
-          <div style={{display:"flex",borderRadius:4,overflow:"hidden",border:"1px solid var(--border)"}}>
-            {["Income","Expense"].map(t=><button key={t} onClick={()=>setType(t)} style={{flex:1,padding:"7px 0",border:"none",cursor:"pointer",fontWeight:type===t?700:400,fontSize:".78rem",background:type===t?(t==="Income"?"var(--green)":"var(--red)"):"#fff",color:type===t?"#fff":"var(--muted)"}}>{t}</button>)}
+        <div className="fl"><span className="flb">Entry Type</span>
+          <div style={{display:"flex",borderRadius:6,overflow:"hidden",border:"1.5px solid var(--border)"}}>
+            {["Income","Expense"].map(t=><button key={t} onClick={()=>setType(t)} style={{flex:1,padding:"8px",border:"none",cursor:"pointer",fontWeight:type===t?700:400,fontSize:".8rem",background:type===t?(t==="Income"?"var(--green)":"var(--red)"):"#fff",color:type===t?"#fff":"var(--muted)",transition:"all .15s"}}>{t}</button>)}
           </div>
         </div>
-        <div className="fl"><span className="flb">Class</span><select value={cl} onChange={e=>{setCl(e.target.value);setStu("")}} className="sel"><option value="">— Select —</option>{classes.map(c=><option key={c}>{c}</option>)}</select></div>
-        <div className="fl"><span className="flb">Student</span><select value={stu} onChange={e=>setStu(e.target.value)} className="sel" disabled={!cl}><option value="">— Select —</option>{stuList.map(n=><option key={n}>{n}</option>)}</select>
-          {cl&&stuList.length===0&&<span className="hint">No students. Sync or import.</span>}
-        </div>
-        <div className="fl"><span className="flb">Category</span><select value={cat} onChange={e=>setCat(e.target.value)} className="sel"><option value="">— Select —</option>{activeCats.map(c=><option key={c}>{c}</option>)}</select></div>
+        <div className="fl"><span className="flb">Class</span><select value={cl} onChange={e=>{setCl(e.target.value);setStu("")}} className="sel"><option value="">— Select class —</option>{classes.map(c=><option key={c}>{c}</option>)}</select></div>
+        <div className="fl"><span className="flb">Student</span><select value={stu} onChange={e=>setStu(e.target.value)} className="sel" disabled={!cl}><option value="">— Select student —</option>{stuList.map(n=><option key={n}>{n}</option>)}</select>{cl&&stuList.length===0&&<span className="hint">No students — sync or import via Class Portal</span>}</div>
+        <div className="fl"><span className="flb">Fee Category</span><select value={cat} onChange={e=>setCat(e.target.value)} className="sel"><option value="">— Select category —</option>{activeCats.map(c=><option key={c}>{c}</option>)}</select></div>
         <div className="fl"><span className="flb">Amount (₦)</span><input type="number" min="0" step=".01" value={amt} onChange={e=>setAmt(e.target.value)} className="inpm" placeholder="0.00"/></div>
-        <div className="fl"><span className="flb">Mode</span><select value={mode} onChange={e=>setMode(e.target.value)} className="sel">{PAY_MODES.map(m=><option key={m}>{m}</option>)}</select></div>
+        <div className="fl"><span className="flb">Payment Mode</span><select value={mode} onChange={e=>setMode(e.target.value)} className="sel">{PAY_MODES.map(m=><option key={m}>{m}</option>)}</select></div>
       </div>
-      <div className="fr" style={{marginTop:12}}>
-        <button className="btn bp" onClick={submit}>SUBMIT ENTRY</button>
-        <button className="btn bo" onClick={()=>setShowR(!showR)}>{showR?"Cancel":"⤺ Reversal"}</button>
+      <div className="fr" style={{marginTop:14}}>
+        <button className="btn btn-gold" onClick={submit} disabled={saving}>{saving?"Saving…":"SUBMIT ENTRY"}</button>
+        <button className="btn btn-ghost btn-sm" onClick={()=>setShowR(!showR)}>{showR?"Cancel":"⤺ Post Reversal"}</button>
       </div>
-      {showR&&<div style={{marginTop:10,padding:12,background:"var(--red2)",border:"1px dashed var(--red)",borderRadius:4}}>
-        <div className="fl"><span className="flb">Original Entry ID</span><input value={rId} onChange={e=>setRId(e.target.value)} className="inp" placeholder="Paste entry_id"/></div>
-        <button className="btn br bs" style={{marginTop:8}} onClick={doRev}>CONFIRM REVERSAL</button>
+      {showR&&<div style={{marginTop:12,padding:14,background:"var(--redbg)",border:"1px dashed var(--red)",borderRadius:8}}>
+        <div className="fl" style={{marginBottom:10}}><span className="flb">Original Entry ID</span><input value={rId} onChange={e=>setRId(e.target.value)} className="inpm" placeholder="Paste entry_id to reverse"/></div>
+        <button className="btn btn-red btn-sm" onClick={doRev}>CONFIRM REVERSAL</button>
       </div>}
     </div>
     <div className="card">
-      <div className="fb"><div className="ct">Ledger View</div><input type="date" value={fd} onChange={e=>setFd(e.target.value)} className="inp" style={{width:155}}/></div>
-      <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap"}}>
-        {[["Opening",op,"var(--border)","var(--ink)"],["Closing",clBal,clBal>=0?"var(--green)":"var(--red)",clBal>=0?"var(--green)":"var(--red)"],["Day",dayN(fd),"var(--border)","var(--ink)"]].map(([l,v,bc,vc])=>
-          <div key={l} style={{flex:1,minWidth:130,padding:"9px 12px",background:"var(--bg2)",border:"1.5px solid "+bc,borderRadius:5,textAlign:"center"}}>
-            <div className="flb">{l}</div><div style={{fontFamily:"var(--ff-m)",fontSize:"1rem",fontWeight:700,marginTop:3,color:vc}}>{typeof v==="number"?N(v):v}</div>
+      <div className="fb" style={{marginBottom:12}}><div className="sect" style={{marginBottom:0}}>Ledger View</div><input type="date" value={fd} onChange={e=>setFd(e.target.value)} className="inp" style={{width:155}}/></div>
+      <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap"}}>
+        {[["Opening Balance",op,liq>=0?"var(--navy)":"var(--red)"],["Closing Balance",clBal,clBal>=0?"var(--green)":"var(--red)"],["Day of Week",dayN(fd),"var(--navy)"]].map(([l,v,c],i)=>
+          <div key={i} style={{flex:1,minWidth:140,padding:"12px 16px",background:i===1?"var(--navy)":"var(--card)",border:"1px solid var(--border)",borderRadius:8,textAlign:"center",boxShadow:"var(--sh)"}}>
+            <div style={{fontSize:".64rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".5px",color:i===1?"rgba(255,255,255,.6)":"var(--muted)"}}>{l}</div>
+            <div style={{fontFamily:"var(--ff-m)",fontSize:"1.05rem",fontWeight:700,marginTop:5,color:i===1?"var(--gold)":typeof v==="number"?(v<0?"var(--red)":c):"var(--navy)"}}>{typeof v==="number"?N(v):v}</div>
           </div>)}
       </div>
-      <div className="tw"><table><thead><tr><th>ID</th><th>Time</th><th>Student</th><th>Class</th><th>Category</th><th>Mode</th><th className="r">Income</th><th className="r">Expense</th><th className="r">Running</th><th>Note</th></tr></thead>
+      <div className="tw"><table><thead><tr><th>ID</th><th>Time</th><th>Student</th><th>Class</th><th>Category</th><th>Mode</th><th className="r">Income</th><th className="r">Expense</th><th className="r">Balance</th><th>Note</th></tr></thead>
       <tbody>
-        {dayE.length===0&&<tr><td colSpan={10} className="er">No entries for {fmtD(fd)}</td></tr>}
-        {dayE.map((e,i)=>{
-          let rb=op;for(let j=0;j<=i;j++)rb+=dayE[j].entry_type==="Income"?dayE[j].amount:-dayE[j].amount;
+        {dayE.length===0&&<tr><td colSpan={10} className="er">No entries recorded for {fmtD(fd)}</td></tr>}
+        {dayE.map((e,i)=>{let rb=op;for(let j=0;j<=i;j++)rb+=dayE[j].entry_type==="Income"?dayE[j].amount:-dayE[j].amount;
           return<tr key={e.entry_id} className={e.reversed?"rvd":e.reversal_of?"rvr":""}>
             <td className="mn">{e.entry_id.slice(0,8)}</td>
             <td>{new Date(e.timestamp).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</td>
-            <td>{e.student}</td><td>{e.class_name}</td>
-            <td>{e.category}{e.is_prior_term?" ⏮":""}</td><td>{e.mode}</td>
+            <td style={{fontWeight:500}}>{e.student}</td><td>{e.class_name}</td>
+            <td>{e.category}{e.is_prior_term?" ⏮":""}</td><td><span className="badge" style={{background:"var(--bg2)",color:"var(--slate)",border:"1px solid var(--border)"}}>{e.mode}</span></td>
             <td className="my">{e.entry_type==="Income"?N(e.amount):""}</td>
             <td className="mr">{e.entry_type==="Expense"?N(e.amount):""}</td>
-            <td className="my" style={{fontWeight:700}}>{N(rb)}</td>
-            <td>{e.reversed?"REVERSED":e.note||""}</td>
-          </tr>;
-        })}
+            <td style={{fontFamily:"var(--ff-m)",textAlign:"right",fontWeight:700,color:rb>=0?"var(--green)":"var(--red)"}}>{N(rb)}</td>
+            <td style={{fontSize:".75rem",color:"var(--muted)"}}>{e.reversed?"REVERSED":e.note||""}</td>
+          </tr>;})}
       </tbody></table></div>
     </div>
   </div>;
 }
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 // CLASS PORTAL
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 function ClassPortal({sec}){
   const ctx=useApp();
   const classes=sec==="A"?SEC_A:SEC_B;
   const[sc,setSc]=useState(classes[0]);
-  const[ocrText,setOcrText]=useState("");
-  const[showOCR,setShowOCR]=useState(false);
-  const[ocrLoad,setOcrLoad]=useState(false);
-  const[msg,setMsg]=useState(null);
+  const[ocrText,setOcrText]=useState("");const[showOCR,setShowOCR]=useState(false);const[ocrLoad,setOcrLoad]=useState(false);const[msg,setMsg]=useState(null);
   const fileRef=useRef();
   const list=ctx.students[sc]||[];
 
@@ -879,78 +715,72 @@ function ClassPortal({sec}){
     if(!file)return;setOcrLoad(true);
     try{
       const b64=await new Promise((r,j)=>{const f=new FileReader();f.onload=()=>r(f.result.split(",")[1]);f.onerror=j;f.readAsDataURL(file)});
-      const resp=await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",
-        headers:{"Content-Type":"application/json","Authorization":"Bearer YOUR_OPENROUTER_KEY_HERE"},
-        body:JSON.stringify({model:"google/gemini-2.0-flash-001",messages:[{role:"user",content:[
-          {type:"text",text:"Extract all student names from this image. Return ONLY a plain list of names, one per line. No numbers, no extra text."},
-          {type:"image_url",image_url:{url:"data:image/jpeg;base64,"+b64}}
-        ]}]})});
-      const data=await resp.json();
-      const text=data?.choices?.[0]?.message?.content||"";
-      if(text.trim()){setOcrText(text.trim());setShowOCR(true)}else setMsg({t:1,m:"No names extracted. Try again or paste manually."});
-    }catch(e){setMsg({t:1,m:"OCR failed. Paste names manually."})}
+      const resp=await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+(ctx.aiConfig?.apiKey||"")},body:JSON.stringify({model:ctx.aiConfig?.model||"google/gemini-2.0-flash-001",messages:[{role:"user",content:[{type:"text",text:"Extract student names from this image. Return ONLY names, one per line. No numbers, prefixes, or extra text."},{type:"image_url",image_url:{url:"data:image/jpeg;base64,"+b64}}]}]})});
+      const data=await resp.json();const text=data?.choices?.[0]?.message?.content||"";
+      if(text.trim()){setOcrText(text.trim());setShowOCR(true)}else setMsg({t:1,m:"No names extracted."});
+    }catch(e){setMsg({t:1,m:"OCR failed. Add AI key in Settings or paste manually."})}
     setOcrLoad(false);
   }
 
   async function bulkImport(){
-    const names=ocrText.split("\n").map(n=>n.trim()).filter(Boolean);
-    if(!names.length)return;
+    const names=ocrText.split("\n").map(n=>n.trim()).filter(Boolean);if(!names.length)return;
     const up={...ctx.students};if(!up[sc])up[sc]=[];
     let added=0;
     for(const nm of names){
       if(!up[sc].find(s=>s.name.toLowerCase()===nm.toLowerCase())){
         const ck=sc.toLowerCase().replace(/[èé]/g,"e").replace(/\s+/g,"");
-        const ns={name:nm,class_key:ck,admno:"SSFP-"+uid().slice(0,6).toUpperCase(),gender:"",house:"",age:"",photo:""};
-        try{const r=await sbPost("students",ns);up[sc].push({name:nm,admno:ns.admno,gender:"",supaId:r[0]?.id,payments:[],arrears:0})}
+        const ns={name:nm,class_key:ck,admno:"WTS-"+uid().slice(0,6).toUpperCase(),gender:"",house:"",age:"",photo:""};
+        try{const r=await sbP("students",ns);up[sc].push({name:nm,admno:ns.admno,gender:"",supaId:r[0]?.id,payments:[],arrears:0})}
         catch{up[sc].push({name:nm,admno:ns.admno,gender:"",payments:[],arrears:0})}
         added++;
       }
     }
-    ctx.setStudents(up);LS.s("students",up);setOcrText("");setShowOCR(false);
-    ctx.addAudit("IMPORT",`${added} students → ${sc}`,ctx.session.name);
-    setMsg({t:0,m:`${added} imported (${names.length-added} duplicates skipped)`});setTimeout(()=>setMsg(null),3e3);
+    ctx.setStudents(up);LS.s("ssfp_students",up);setOcrText("");setShowOCR(false);
+    setMsg({t:0,m:`✓ ${added} students imported (${names.length-added} duplicates skipped)`});setTimeout(()=>setMsg(null),4e3);
   }
 
-  return<div className="fi">
-    <div className="fb" style={{marginBottom:12}}><h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.1rem"}}>🏫 Class Portal — Section {sec}</h2></div>
-    {msg&&<div className={msg.t?"me":"mo"}>{msg.m}</div>}
+  return<div className="fu">
+    <div className="fb" style={{marginBottom:14}}><h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)"}}>Class Portal — Section {sec}</h2></div>
+    {msg&&<div className={msg.t?"msg-err":"msg-ok"}>{msg.m}</div>}
     <div className="cp">{classes.map(c=><button key={c} className={"pill"+(sc===c?" a":"")} onClick={()=>setSc(c)}>{c} <span style={{fontFamily:"var(--ff-m)",fontSize:".6rem",opacity:.7}}>({(ctx.students[c]||[]).length})</span></button>)}</div>
     <div className="card">
       <div className="fr">
         <input type="file" ref={fileRef} accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>e.target.files[0]&&handleOCR(e.target.files[0])}/>
-        <button className="btn bp" onClick={()=>fileRef.current?.click()}>{ocrLoad?"Processing…":"📷 Camera / Gallery"}</button>
-        <button className="btn bo" onClick={()=>setShowOCR(!showOCR)}>{showOCR?"Cancel":"📋 Paste Names"}</button>
+        <button className="btn btn-primary" onClick={()=>fileRef.current?.click()}>{ocrLoad?"Processing…":"📷 Camera / Gallery OCR"}</button>
+        <button className="btn btn-outline btn-sm" onClick={()=>setShowOCR(!showOCR)}>{showOCR?"Cancel":"📋 Paste Names"}</button>
       </div>
       {showOCR&&<div style={{marginTop:12}}>
-        <p className="hint" style={{marginBottom:6}}>One name per line. New students are added to the shared database.</p>
-        <textarea value={ocrText} onChange={e=>setOcrText(e.target.value)} className="inp" style={{width:"100%",minHeight:120,fontFamily:"var(--ff-m)",fontSize:".78rem",resize:"vertical"}} placeholder={"Alabi Mubarak\nFatima Bello\nChinedu Okafor"}/>
-        <button className="btn bp" style={{marginTop:8}} onClick={bulkImport}>IMPORT TO DATABASE</button>
+        <p className="hint" style={{marginBottom:8}}>One name per line. New students are added to the shared result portal database automatically.</p>
+        <textarea value={ocrText} onChange={e=>setOcrText(e.target.value)} className="textarea" rows={6} placeholder={"Alabi Mubarak\nFatima Bello\nChinedu Okafor\n…"}/>
+        <button className="btn btn-gold" style={{marginTop:8}} onClick={bulkImport}>IMPORT TO DATABASE</button>
       </div>}
     </div>
-    <div className="tw"><table><thead><tr><th>#</th><th>Name</th><th>Adm No</th><th>Gender</th><th className="r">Total Paid</th><th>Tags</th><th>Status</th></tr></thead>
+    <div className="tw"><table><thead><tr><th>#</th><th>Student Name</th><th>Adm No</th><th>Gender</th><th className="r">Total Paid</th><th>Tags</th><th>Status</th></tr></thead>
     <tbody>
-      {list.length===0&&<tr><td colSpan={7} className="er">No students in {sc}. Sync or import above.</td></tr>}
+      {list.length===0&&<tr><td colSpan={7} className="er">No students in {sc}. Sync from result portal or import above.</td></tr>}
       {list.map((s,i)=>{
-        const paid=(s.payments||[]).reduce((sum,p)=>sum+p.amount,0);
+        const paid=(s.payments||[]).filter(p=>p.amount>0).reduce((sum,p)=>sum+p.amount,0);
         const isSch=(ctx.scholarships||[]).some(x=>x.student===s.name&&x.class_name===sc);
         const isDP=(ctx.directPay||[]).some(x=>x.student===s.name&&x.class_name===sc);
-        return<tr key={s.admno+s.name}><td>{i+1}</td><td style={{fontWeight:500}}>{s.name}</td><td className="mn">{s.admno}</td><td>{s.gender}</td>
-          <td className="my">{N(paid)}</td>
-          <td>{isSch&&<span className="badge bdo">Scholar</span>}{isDP&&<span className="badge bdb" style={{marginLeft:3}}>Direct</span>}</td>
-          <td>{(s.arrears||0)>0?"⚠️":"✅"}</td></tr>;
+        return<tr key={s.admno+s.name}><td style={{color:"var(--muted)",fontSize:".75rem"}}>{i+1}</td>
+          <td style={{fontWeight:600,color:"var(--ink)"}}>{s.name}</td>
+          <td className="mn">{s.admno}</td><td style={{color:"var(--muted)"}}>{s.gender}</td>
+          <td style={{fontFamily:"var(--ff-m)",textAlign:"right",fontWeight:700,color:"var(--green)"}}>{N(paid)}</td>
+          <td style={{display:"flex",gap:4,flexWrap:"wrap"}}>{isSch&&<span className="badge bdo">Scholar</span>}{isDP&&<span className="badge bdb">Direct</span>}</td>
+          <td>{(s.arrears||0)>0?<span className="badge bdr">Arrears</span>:<span className="badge bdg">✓ OK</span>}</td>
+        </tr>;
       })}
     </tbody></table></div>
   </div>;
 }
 
-// ═══════════════════════════════════════════════════
-// STUDENT LEDGERS + RECEIPTS
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// STUDENT LEDGERS + PER-TRANSACTION RECEIPTS
+// ══════════════════════════════════════════════════
 function Ledgers({sec}){
   const ctx=useApp();
   const classes=sec==="A"?SEC_A:SEC_B;
-  const[sc,setSc]=useState(classes[0]);
-  const[ss,setSs]=useState("");
+  const[sc,setSc]=useState(classes[0]);const[ss,setSs]=useState("");const[viewRcp,setViewRcp]=useState(null);
   const list=ctx.students[sc]||[];
   const stu=list.find(s=>s.name===ss);
   const pays=(stu?.payments||[]);
@@ -958,202 +788,225 @@ function Ledgers({sec}){
   const total=posPays.reduce((s,p)=>s+p.amount,0);
   const catP={};pays.forEach(p=>{catP[p.category]=(catP[p.category]||0)+p.amount});
 
-  return<div className="fi">
-    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.1rem",marginBottom:12}}>👤 Ledgers — Section {sec}</h2>
-    <div className="fr" style={{marginBottom:12}}>
+  // Check if fully paid (all active categories with targets)
+  const cats=(ctx.categories||DEF_CATS).filter(c=>ctx.termCfg?.activeCats?.[c]!==false&&c!=="Outstanding/Backlog");
+  const classTargets=(ctx.feeTargets||{})[sc]||{};
+  const allPaid=cats.every(c=>{const t=classTargets[c]||0;return t===0||(catP[c]||0)>=t});
+  const sp=ctx.schoolProfile||{};
+
+  function printSingle(p){setViewRcp({type:"single",payment:p,student:stu,cls:sc});setTimeout(()=>window.print(),300)}
+  function printAll(){setViewRcp({type:"all",student:stu,cls:sc,payments:posPays,total});setTimeout(()=>window.print(),300)}
+
+  return<div className="fu">
+    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:14}}>Student Ledgers — Section {sec}</h2>
+    <div className="fr" style={{marginBottom:14}}>
       <select value={sc} onChange={e=>{setSc(e.target.value);setSs("")}} className="sel" style={{flex:1}}>{classes.map(c=><option key={c}>{c}</option>)}</select>
       <select value={ss} onChange={e=>setSs(e.target.value)} className="sel" style={{flex:2}}><option value="">— Select Student —</option>{list.map(s=><option key={s.name}>{s.name}</option>)}</select>
     </div>
+
     {ss&&stu?<div>
       <div className="card">
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8,marginBottom:10}}>
-          <div><div className="ct" style={{marginBottom:2}}>{stu.name}</div><span className="badge bdb">{stu.admno}</span> <span className="badge" style={{background:"var(--bg2)",color:"var(--muted)"}}>{sc}</span></div>
+        <div className="fb" style={{marginBottom:14}}>
+          <div>
+            <div style={{fontFamily:"var(--ff-d)",fontSize:"1.05rem",color:"var(--navy)",fontWeight:700}}>{stu.name}</div>
+            <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}><span className="badge bdb">{stu.admno}</span><span className="badge" style={{background:"var(--bg2)",color:"var(--slate)",border:"1px solid var(--border)"}}>{sc}</span>{allPaid&&<span className="badge bdg">✓ Fully Paid</span>}</div>
+          </div>
           <div style={{display:"flex",gap:8}}>
-            <div style={{padding:"8px 14px",background:"var(--greenBg)",borderRadius:5,textAlign:"center"}}><div className="flb">Paid</div><div style={{fontFamily:"var(--ff-m)",fontWeight:700,color:"var(--green)"}}>{N(total)}</div></div>
-            <div style={{padding:"8px 14px",background:"var(--redBg)",borderRadius:5,textAlign:"center"}}><div className="flb">Arrears</div><div style={{fontFamily:"var(--ff-m)",fontWeight:700,color:"var(--red)"}}>{N(stu.arrears||0)}</div></div>
+            <div style={{padding:"10px 16px",background:"var(--greenbg)",borderRadius:8,textAlign:"center",border:"1px solid var(--greenbdr)"}}><div style={{fontSize:".62rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".5px",color:"var(--green)"}}>Total Paid</div><div style={{fontFamily:"var(--ff-m)",fontWeight:800,color:"var(--green)",fontSize:"1rem",marginTop:3}}>{N(total)}</div></div>
+            {(stu.arrears||0)>0&&<div style={{padding:"10px 16px",background:"var(--redbg)",borderRadius:8,textAlign:"center",border:"1px solid var(--redbdr)"}}><div style={{fontSize:".62rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".5px",color:"var(--red)"}}>Arrears</div><div style={{fontFamily:"var(--ff-m)",fontWeight:800,color:"var(--red)",fontSize:"1rem",marginTop:3}}>{N(stu.arrears||0)}</div></div>}
           </div>
         </div>
-        {/* Category status pills */}
-        <div style={{marginBottom:10}}>
-          <div className="flb" style={{marginBottom:5}}>Category Status</div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-            {(ctx.categories||DEF_CATS).filter(c=>c!=="Outstanding/Backlog").map(cat=>{
-              const p=catP[cat]||0;const t=ctx.feeTargets?.[cat]||0;const ok=t>0&&p>=t;
-              return<div key={cat} style={{padding:"3px 8px",borderRadius:4,fontSize:".68rem",fontFamily:"var(--ff-m)",background:ok?"var(--greenBg)":p>0?"var(--gold2)":"var(--bg2)",color:ok?"var(--green)":p>0?"#7a6a20":"var(--muted)",border:"1px solid "+(ok?"#a5d6a7":p>0?"#e0c97a":"var(--border)")}}>
+        {/* Category status */}
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:".66rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".5px",color:"var(--muted)",marginBottom:6}}>Fee Status by Category</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+            {cats.map(cat=>{const p=catP[cat]||0;const t=classTargets[cat]||0;const ok=t>0&&p>=t;const partial=p>0&&!ok;
+              return<div key={cat} style={{padding:"4px 10px",borderRadius:5,fontSize:".7rem",fontFamily:"var(--ff-m)",background:ok?"var(--greenbg)":partial?"var(--amberbg)":"var(--bg2)",color:ok?"var(--green)":partial?"var(--amber)":"var(--muted)",border:"1px solid "+(ok?"var(--greenbdr)":partial?"#fbbf24":"var(--border)"),fontWeight:ok||partial?600:400}}>
                 {cat}: {N(p)}{t>0?` / ${N(t)}`:""}{ok?" ✓":""}
-              </div>;
-            })}
+              </div>;})}
           </div>
         </div>
-        <div className="tw"><table><thead><tr><th>Date</th><th>Time</th><th>Category</th><th className="r">Amount</th><th>Mode</th><th>Tag</th></tr></thead>
+        {/* Payment history */}
+        <div className="tw"><table><thead><tr><th>Date</th><th>Time</th><th>Category</th><th className="r">Amount</th><th>Mode</th><th>Tag</th><th>Receipt</th></tr></thead>
         <tbody>
-          {pays.length===0&&<tr><td colSpan={6} className="er">No payments.</td></tr>}
+          {pays.length===0&&<tr><td colSpan={7} className="er">No payment records.</td></tr>}
           {pays.map((p,i)=><tr key={p.id||i} className={p.amount<0?"rvr":""}>
             <td>{fmtD(p.date)}</td>
             <td className="mn">{p.timestamp?new Date(p.timestamp).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""}</td>
             <td>{p.category}</td>
             <td className={p.amount<0?"mr":"my"}>{N(p.amount)}</td>
-            <td>{p.mode}</td>
-            <td>{p.isPriorTerm?"Prior Term":p.note||"Current"}</td>
+            <td><span className="badge" style={{background:"var(--bg2)",color:"var(--slate)",border:"1px solid var(--border)"}}>{p.mode||""}</span></td>
+            <td>{p.isPriorTerm?<span className="badge bdo">Prior</span>:p.note?<span className="badge bdr">Rev</span>:<span className="badge bdg">Current</span>}</td>
+            <td>{p.amount>0&&<button className="btn btn-ghost btn-xs" onClick={()=>printSingle(p)}>🖨</button>}</td>
           </tr>)}
         </tbody></table></div>
-        <button className="btn bp" style={{marginTop:10}} onClick={()=>window.print()}>🖨️ Print Receipt</button>
-        <p className="hint" style={{marginTop:5}}>Read-only. All entries originate from Cash Book.</p>
+        <div className="fr" style={{marginTop:12}}>
+          {allPaid&&<button className="btn btn-gold" onClick={printAll}>🖨 Print Full Receipt</button>}
+          {!allPaid&&posPays.length>0&&<button className="btn btn-ghost btn-sm" onClick={printAll}>🖨 Print Statement</button>}
+        </div>
+        <p className="hint" style={{marginTop:6}}>Ledger is read-only. All entries originate from the Daily Cash Book.</p>
       </div>
-      {/* Printable receipt */}
-      <div className="po rp"><div className="receipt">
-        <h2>SOVEREIGN SCHOOL</h2>
-        <p style={{textAlign:"center",fontSize:".72rem",marginBottom:10,color:"#666"}}>Official Payment Receipt</p>
-        {[["Student",stu.name],["Adm No",stu.admno],["Class",sc],["Term",`${ctx.termCfg?.term} — ${ctx.termCfg?.year}`]].map(([l,v])=><div key={l} className="rl"><span>{l}:</span><strong>{v}</strong></div>)}
-        <div style={{margin:"8px 0",borderTop:"1px solid #ccc"}}/>
-        {posPays.map((p,i)=><div key={i} className="rl"><span style={{flex:1,paddingRight:8}}>{fmtD(p.date)} — {p.category} ({p.mode})</span><span style={{fontFamily:"var(--ff-m)",whiteSpace:"nowrap"}}>{N(p.amount)}</span></div>)}
-        <div className="rt"><span>TOTAL PAID</span><span>{N(total)}</span></div>
-        <p style={{textAlign:"center",fontSize:".62rem",color:"#888",marginTop:14}}>Generated {new Date().toLocaleString()} — SSFP v2</p>
-      </div></div>
-    </div>:<p className="hint">Select a class and student to view their ledger.</p>}
+    </div>:<p className="hint" style={{padding:20,textAlign:"center"}}>Select a class and student to view their ledger and receipts.</p>}
+
+    {/* Printable Receipt */}
+    {viewRcp&&<div className="po" style={{padding:20}}>
+      <div className="receipt-wrap">
+        <div className="receipt-school">{sp.name||SCHOOL_NAME}</div>
+        {sp.motto&&<div style={{fontStyle:"italic",textAlign:"center",fontSize:".7rem",color:"var(--slate)",marginBottom:4}}>{sp.motto}</div>}
+        <div className="receipt-sub">{sp.address&&sp.address+"\n"}{sp.phone&&"Tel: "+sp.phone}{sp.email&&" | "+sp.email}</div>
+        <div style={{textAlign:"center",fontFamily:"var(--ff-m)",fontSize:".68rem",background:"var(--bg2)",padding:"4px 0",borderRadius:4,marginBottom:10,letterSpacing:1}}>
+          {viewRcp.type==="all"?"CONSOLIDATED PAYMENT RECEIPT":"OFFICIAL PAYMENT RECEIPT"}
+        </div>
+        <div className="receipt-row"><span>Student:</span><strong>{viewRcp.student?.name}</strong></div>
+        <div className="receipt-row"><span>Adm No:</span><strong>{viewRcp.student?.admno}</strong></div>
+        <div className="receipt-row"><span>Class:</span><strong>{viewRcp.cls}</strong></div>
+        <div className="receipt-row"><span>Term:</span><strong>{ctx.termCfg?.term} — {ctx.termCfg?.year}</strong></div>
+        <hr className="receipt-divider"/>
+        {viewRcp.type==="single"?<>
+          <div className="receipt-row"><span>Date:</span><span>{fmtD(viewRcp.payment.date)}</span></div>
+          <div className="receipt-row"><span>Category:</span><span>{viewRcp.payment.category}</span></div>
+          <div className="receipt-row"><span>Mode:</span><span>{viewRcp.payment.mode}</span></div>
+          <div className="receipt-row"><span>Receipt No:</span><span style={{fontFamily:"var(--ff-m)",fontSize:".72rem"}}>{viewRcp.payment.id||viewRcp.payment.receiptId}</span></div>
+          <div className="receipt-total"><span>AMOUNT PAID</span><span>{N(viewRcp.payment.amount)}</span></div>
+        </>:<>
+          {(viewRcp.payments||[]).map((p,i)=><div key={i} className="receipt-row">
+            <span style={{flex:1}}>{fmtD(p.date)} — {p.category} ({p.mode})</span>
+            <span style={{fontFamily:"var(--ff-m)",fontWeight:600,whiteSpace:"nowrap"}}>{N(p.amount)}</span>
+          </div>)}
+          <div className="receipt-total"><span>TOTAL PAID</span><span>{N(viewRcp.total)}</span></div>
+        </>}
+        <div className="receipt-footer">
+          {sp.stampNote&&<div style={{margin:"12px 0",padding:"8px",border:"1px dashed var(--border)",borderRadius:4}}>{sp.stampNote}</div>}
+          {sp.principal&&<div>Principal/Head Teacher: _______________________ ({sp.principal})</div>}
+          <div style={{marginTop:6}}>Generated: {new Date().toLocaleString()} — {SCHOOL_SHORT}</div>
+          <div>This is an official receipt. Please retain for your records.</div>
+        </div>
+      </div>
+    </div>}
   </div>;
 }
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 // CLASS ANALYSIS
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 function Analysis({sec}){
   const ctx=useApp();
   const classes=sec==="A"?SEC_A:SEC_B;
   const[sc,setSc]=useState(classes[0]);
-  const[cat,setCat]=useState((ctx.categories||DEF_CATS).filter(c=>c!=="Outstanding/Backlog")[0]||"");
+  const cats=(ctx.categories||DEF_CATS).filter(c=>c!=="Outstanding/Backlog");
+  const[cat,setCat]=useState(cats[0]||"");
   const list=ctx.students[sc]||[];
-  const target=ctx.feeTargets?.[cat]||0;
-  const an=list.map(s=>{
-    const p=(s.payments||[]).filter(x=>x.category===cat&&x.amount>0).reduce((sum,x)=>sum+x.amount,0);
-    return{...s,paid:p,ok:target>0&&p>=target,owing:target>0?Math.max(0,target-p):0};
-  });
-  const totalR=an.reduce((s,a)=>s+a.paid,0);
-  const pC=an.filter(a=>a.ok).length;
-  const oC=an.filter(a=>!a.ok&&target>0).length;
-  const tO=an.reduce((s,a)=>s+a.owing,0);
+  const classTargets=(ctx.feeTargets||{})[sc]||{};
+  const target=classTargets[cat]||0;
+  const an=list.map(s=>{const p=(s.payments||[]).filter(x=>x.category===cat&&x.amount>0).reduce((sum,x)=>sum+x.amount,0);return{...s,paid:p,ok:target>0&&p>=target,owing:target>0?Math.max(0,target-p):0}});
+  const totalR=an.reduce((s,a)=>s+a.paid,0);const pC=an.filter(a=>a.ok).length;const oC=an.filter(a=>!a.ok&&target>0).length;const tO=an.reduce((s,a)=>s+a.owing,0);
 
-  return<div className="fi">
-    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.1rem",marginBottom:12}}>📋 Analysis — Section {sec}</h2>
+  return<div className="fu">
+    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:14}}>Payment Analysis — Section {sec}</h2>
     <div className="cp">{classes.map(c=><button key={c} className={"pill"+(sc===c?" a":"")} onClick={()=>setSc(c)}>{c} ({(ctx.students[c]||[]).length})</button>)}</div>
-    <div className="fr" style={{marginBottom:12}}>
-      <div className="fl"><span className="flb">Category</span>
-        <select value={cat} onChange={e=>setCat(e.target.value)} className="sel">
-          {(ctx.categories||DEF_CATS).filter(c=>c!=="Outstanding/Backlog").map(c=><option key={c}>{c}</option>)}
-        </select>
+    <div className="fr" style={{marginBottom:14}}>
+      <div className="fl" style={{flex:2}}><span className="flb">Category</span><select value={cat} onChange={e=>setCat(e.target.value)} className="sel">{cats.map(c=><option key={c}>{c}</option>)}</select></div>
+      <div style={{fontFamily:"var(--ff-m)",fontSize:".76rem",padding:"8px 14px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,alignSelf:"flex-end",boxShadow:"var(--sh)"}}>
+        Target ({sc}): <strong style={{color:"var(--navy)"}}>{target>0?N(target):"Not set"}</strong>
       </div>
-      <div style={{fontFamily:"var(--ff-m)",fontSize:".76rem",padding:"7px 12px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,alignSelf:"flex-end"}}>Target: <strong>{target>0?N(target):"Not set"}</strong></div>
     </div>
     <div className="kg">
-      <div className="kpi" style={{borderLeftColor:"var(--green)"}}><div className="kl">Realized</div><div className="kv" style={{color:"var(--green)"}}>{N(totalR)}</div></div>
-      <div className="kpi" style={{borderLeftColor:"var(--blue)"}}><div className="kl">Completed</div><div className="kv">{pC} / {list.length}</div></div>
-      <div className="kpi" style={{borderLeftColor:"var(--red)"}}><div className="kl">Outstanding</div><div className="kv" style={{color:"var(--red)"}}>{N(tO)}</div></div>
+      <div className="kpi" style={{"--accent":"var(--green)"}}><div className="kl">Total Realized</div><div className="kv" style={{color:"var(--green)"}}>{N(totalR)}</div><div className="ksub">{sc} — {cat}</div></div>
+      <div className="kpi" style={{"--accent":"var(--blue)"}}><div className="kl">Completed Payment</div><div className="kv">{pC} / {list.length}</div><div className="ksub">students</div></div>
+      <div className="kpi" style={{"--accent":"var(--red)"}}><div className="kl">Total Outstanding</div><div className="kv" style={{color:"var(--red)"}}>{N(tO)}</div><div className="ksub">{oC} students owing</div></div>
     </div>
-    {pC>0&&<div className="card"><div className="ct" style={{color:"var(--green)"}}>✅ Completed ({pC})</div>
+    {pC>0&&<div className="card"><div className="sect" style={{color:"var(--green)"}}>✅ Completed ({pC})</div>
       <div className="tw"><table><thead><tr><th>#</th><th>Student</th><th>Adm No</th><th className="r">Paid</th></tr></thead>
-      <tbody>{an.filter(a=>a.ok).map((a,i)=><tr key={a.name}><td>{i+1}</td><td>{a.name}</td><td className="mn">{a.admno}</td><td className="my">{N(a.paid)}</td></tr>)}</tbody></table></div></div>}
-    {oC>0&&<div className="card"><div className="ct" style={{color:"var(--red)"}}>⚠️ Yet to Pay ({oC})</div>
+      <tbody>{an.filter(a=>a.ok).map((a,i)=><tr key={a.name}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:600}}>{a.name}</td><td className="mn">{a.admno}</td><td className="my">{N(a.paid)}</td></tr>)}</tbody></table></div></div>}
+    {oC>0&&<div className="card"><div className="sect" style={{color:"var(--red)"}}>⚠️ Yet to Complete ({oC})</div>
       <div className="tw"><table><thead><tr><th>#</th><th>Student</th><th>Adm No</th><th className="r">Paid</th><th className="r">Owing</th></tr></thead>
-      <tbody>{an.filter(a=>!a.ok&&target>0).map((a,i)=><tr key={a.name}><td>{i+1}</td><td>{a.name}</td><td className="mn">{a.admno}</td><td className="my">{N(a.paid)}</td><td className="mr">{N(a.owing)}</td></tr>)}</tbody></table></div></div>}
-    {target===0&&<div className="mw">Set a target for "{cat}" in Settings → Fee Targets to enable completion tracking.</div>}
+      <tbody>{an.filter(a=>!a.ok&&target>0).map((a,i)=><tr key={a.name}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:600}}>{a.name}</td><td className="mn">{a.admno}</td><td className="my">{N(a.paid)}</td><td className="mr">{N(a.owing)}</td></tr>)}</tbody></table></div></div>}
+    {target===0&&<div className="msg-warn">⚠ No target set for "{cat}" in {sc}. Go to Settings → Fee Targets to set per-class targets.</div>}
   </div>;
 }
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 // LESSON PORTAL
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 function Lessons(){
   const ctx=useApp();const isA=ctx.session?.role==="admin";
   const lc=ctx.lessonCur||{days:{},teacherRate:2500,teacherCount:10};
-  const days=lc.days||{};const rate=Number(lc.teacherRate)||2500;const tc=Number(lc.teacherCount)||10;
-  const setDC=(d,c,v)=>{const nd={...days};if(!nd[d])nd[d]={};nd[d]={...nd[d],[c]:parseFloat(v)||0};ctx.updLessonCur({...lc,days:nd})};
+  const days=lc.days||{};const rate=Number(lc.teacherRate)||0;const tc=Number(lc.teacherCount)||0;
+  const setDC=(d,c,v)=>{const nd={...days,[d]:{...(days[d]||{}),[c]:parseFloat(v)||0}};ctx.setLessonCur({...lc,days:nd})};
   const dt={};DAYS.forEach(d=>{dt[d]=ALL_CLS.reduce((s,c)=>s+(days[d]?.[c]||0),0)});
-  const gt=Object.values(dt).reduce((s,v)=>s+v,0);
-  const tp=rate*tc;const pr=gt-tp;
+  const gt=Object.values(dt).reduce((s,v)=>s+v,0);const tp=rate*tc;const pr=gt-tp;
 
   async function close(){
     if(!isA)return;
     const w={wid:uid(),date:today(),days:{...days},teacherRate:rate,teacherCount:tc,grandTotal:gt,totalTeacherPay:tp,proprietorShare:pr,created_at:new Date().toISOString()};
-    await ctx.saveLW(w);ctx.updLessonCur({days:{},teacherRate:rate,teacherCount:tc});
-    ctx.addAudit("LESSON_CLOSE",`${N(gt)} total, ${N(tp)} teachers, ${N(pr)} proprietor`,ctx.session.name);
+    await ctx.saveLW(w);ctx.setLessonCur({days:{},teacherRate:rate,teacherCount:tc});
+    ctx.addAudit("LESSON_CLOSE",`${N(gt)} — Teachers: ${N(tp)}, Proprietor: ${N(pr)}`,ctx.session?.name);
   }
 
-  return<div className="fi">
-    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.1rem",marginBottom:8}}>📅 Lesson Portal</h2>
-    <p className="hint" style={{marginBottom:12}}>Completely separate from Cash Book. Lesson fees never appear in student ledgers.</p>
-    <div className="card"><div className="ct">Week Configuration</div><div className="fr">
-      <div className="fl"><span className="flb">Flat Rate / Teacher (₦)</span><input type="number" value={rate} onChange={e=>ctx.updLessonCur({...lc,teacherRate:parseFloat(e.target.value)||0})} className="inpm" style={{width:130}}/></div>
-      <div className="fl"><span className="flb">Teachers on Ground</span><input type="number" value={tc} onChange={e=>ctx.updLessonCur({...lc,teacherCount:parseInt(e.target.value)||0})} className="inpm" style={{width:100}}/></div>
+  return<div className="fu">
+    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:8}}>Lesson Portal — Weekly Cycle</h2>
+    <div className="msg-info" style={{marginBottom:14}}>ℹ Lesson fees are completely independent of the Daily Cash Book. They do not appear in student ledgers or fee categories.</div>
+    <div className="card"><div className="sect">Week Configuration</div><div className="fr">
+      <div className="fl"><span className="flb">Flat Rate / Teacher (₦)</span><input type="number" value={rate} onChange={e=>ctx.setLessonCur({...lc,teacherRate:parseFloat(e.target.value)||0})} className="inpm" style={{width:140}}/></div>
+      <div className="fl"><span className="flb">Teachers on Ground</span><input type="number" value={tc} onChange={e=>ctx.setLessonCur({...lc,teacherCount:parseInt(e.target.value)||0})} className="inpm" style={{width:110}}/></div>
     </div></div>
-    <div className="card"><div className="ct">Daily Collection by Class</div><div style={{overflowX:"auto"}}>
-      <div className="lg" style={{gridTemplateColumns:`130px repeat(${DAYS.length},1fr) 90px`,minWidth:680}}>
-        <div className="lh" style={{textAlign:"left",paddingLeft:10}}>Class</div>
-        {DAYS.map(d=><div key={d} className="lh">{d.slice(0,3)}</div>)}
-        <div className="lh">Total</div>
-        {ALL_CLS.map(c=>{
-          const rt=DAYS.reduce((s,d)=>s+(days[d]?.[c]||0),0);
-          return<React.Fragment key={c}>
-            <div className="lc" style={{textAlign:"left",paddingLeft:8,fontFamily:"var(--ff-b)",fontWeight:500,fontSize:".73rem"}}>{c}</div>
-            {DAYS.map(d=><div key={d} className="lc"><input type="number" min="0" value={days[d]?.[c]||""} onChange={e=>setDC(d,c,e.target.value)} className="li" placeholder="0"/></div>)}
-            <div className="lc lt">{N(rt)}</div>
-          </React.Fragment>;
-        })}
-        <div className="lc lt" style={{textAlign:"left",paddingLeft:8,fontWeight:700,fontSize:".73rem"}}>DAY TOTAL</div>
-        {DAYS.map(d=><div key={d} className="lc lt">{N(dt[d])}</div>)}
-        <div className="lc" style={{background:"var(--accent)",color:"#fff",fontWeight:800,fontFamily:"var(--ff-m)"}}>{N(gt)}</div>
+    <div className="card"><div className="sect">Daily Collection by Class</div><div style={{overflowX:"auto"}}>
+      <div className="lg" style={{gridTemplateColumns:`140px repeat(${DAYS.length},1fr) 95px`,minWidth:700}}>
+        <div className="lh" style={{textAlign:"left",paddingLeft:10}}>Class</div>{DAYS.map(d=><div key={d} className="lh">{d.slice(0,3)}</div>)}<div className="lh">Total</div>
+        {ALL_CLS.map(c=>{const rt=DAYS.reduce((s,d)=>s+(days[d]?.[c]||0),0);return<React.Fragment key={c}>
+          <div className="lc" style={{textAlign:"left",paddingLeft:10,fontFamily:"var(--ff-b)",fontWeight:500,fontSize:".74rem",color:"var(--ink)"}}>{c}</div>
+          {DAYS.map(d=><div key={d} className="lc"><input type="number" min="0" value={days[d]?.[c]||""} onChange={e=>setDC(d,c,e.target.value)} className="li" placeholder="0"/></div>)}
+          <div className="lc lt" style={{fontFamily:"var(--ff-m)",fontSize:".76rem"}}>{rt>0?N(rt):"—"}</div>
+        </React.Fragment>;})}
+        <div className="lc lt" style={{textAlign:"left",paddingLeft:10,fontWeight:700,fontSize:".74rem"}}>DAY TOTAL</div>{DAYS.map(d=><div key={d} className="lc lt" style={{fontFamily:"var(--ff-m)",fontSize:".76rem"}}>{dt[d]>0?N(dt[d]):"—"}</div>)}
+        <div className="lc" style={{background:"var(--navy)",color:"var(--gold)",fontFamily:"var(--ff-m)",fontWeight:800,fontSize:".8rem"}}>{N(gt)}</div>
       </div></div></div>
-    <div className="card"><div className="ct">Weekly Settlement</div><div className="kg">
-      <div className="kpi" style={{borderLeftColor:"var(--accent)"}}><div className="kl">Grand Total</div><div className="kv">{N(gt)}</div></div>
-      <div className="kpi" style={{borderLeftColor:"var(--green)"}}><div className="kl">Teachers ({tc} × {N(rate)})</div><div className="kv" style={{color:"var(--green)"}}>{N(tp)}</div></div>
-      <div className="kpi" style={{borderLeftColor:pr>=0?"var(--blue)":"var(--red)"}}><div className="kl">Proprietor</div><div className="kv" style={{color:pr>=0?"var(--blue)":"var(--red)"}}>{N(pr)}</div></div>
+    <div className="card"><div className="sect">Weekly Settlement</div><div className="kg">
+      <div className="kpi" style={{"--accent":"var(--navy)"}}><div className="kl">Grand Total Collected</div><div className="kv">{N(gt)}</div></div>
+      <div className="kpi" style={{"--accent":"var(--green)"}}><div className="kl">Teachers ({tc} × {N(rate)})</div><div className="kv" style={{color:"var(--green)"}}>{N(tp)}</div></div>
+      <div className="kpi" style={{"--accent":pr>=0?"var(--blue)":"var(--red)"}}><div className="kl">Proprietor</div><div className="kv" style={{color:pr>=0?"var(--blue)":"var(--red)"}}>{N(pr)}</div></div>
     </div>
-    {isA&&gt>0&&<button className="btn bg2" onClick={close}>✓ CLOSE WEEK & ARCHIVE</button>}
-    {!isA&&<p className="hint">Only Admin can close the week.</p>}
+    {isA&&gt>0&&<button className="btn btn-green" onClick={close}>✓ CLOSE WEEK & ARCHIVE</button>}
+    {!isA&&<p className="hint">Only Admin can approve week close.</p>}
     </div>
-    {(ctx.lessonWeeks||[]).length>0&&<div className="card"><div className="ct">Archives</div>
-      <div className="tw"><table><thead><tr><th>Closed</th><th className="r">Total</th><th className="r">Teachers</th><th className="r">Per Teacher</th><th className="r">Proprietor</th></tr></thead>
-      <tbody>{[...(ctx.lessonWeeks||[])].reverse().map(a=><tr key={a.wid}>
-        <td>{fmtD(a.date)}</td><td className="my">{N(a.grandTotal)}</td><td className="my">{N(a.totalTeacherPay)}</td>
-        <td className="my">{N(a.teacherRate)}</td><td className={a.proprietorShare>=0?"my":"mr"}>{N(a.proprietorShare)}</td>
-      </tr>)}</tbody></table></div></div>}
+    {(ctx.lessonWeeks||[]).length>0&&<div className="card"><div className="sect">Archived Weeks</div>
+      <div className="tw"><table><thead><tr><th>Date Closed</th><th className="r">Total</th><th className="r">Teachers</th><th className="r">Rate/Teacher</th><th className="r">Proprietor</th></tr></thead>
+      <tbody>{[...(ctx.lessonWeeks||[])].reverse().map(a=><tr key={a.wid}><td>{fmtD(a.date)}</td><td className="my">{N(a.grandTotal)}</td><td className="my">{N(a.totalTeacherPay)}</td><td className="my">{N(a.teacherRate)}</td><td className={a.proprietorShare>=0?"my":"mr"}>{N(a.proprietorShare)}</td></tr>)}</tbody></table></div></div>}
   </div>;
 }
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 // DASHBOARD
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 function Dash(){
-  const ctx=useApp();
-  const ae=ctx.cashBook||[];
+  const ctx=useApp();const ae=ctx.cashBook||[];
   const ti=ae.filter(e=>e.entry_type==="Income"&&!e.reversed).reduce((s,e)=>s+e.amount,0);
   const te=ae.filter(e=>e.entry_type==="Expense"&&!e.reversal_of).reduce((s,e)=>s+e.amount,0);
   const pt=ae.filter(e=>e.is_prior_term&&e.entry_type==="Income"&&!e.reversed).reduce((s,e)=>s+e.amount,0);
   const catBk={};ae.filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{catBk[e.category]=(catBk[e.category]||0)+e.amount});
   const cStats=ALL_CLS.map(c=>{const st=ctx.students[c]||[];const tp=st.reduce((s,x)=>(x.payments||[]).filter(p=>p.amount>0).reduce((ps,p)=>ps+p.amount,0)+s,0);return{c,n:st.length,tp}}).filter(x=>x.n>0);
-
-  return<div className="fi">
-    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.1rem",marginBottom:12}}>📊 Dashboard</h2>
-    <div className="mw"><strong>Reminders:</strong> {(ctx.directPay||[]).length} direct payment(s) on record. {(ctx.scholarships||[]).length} scholarship/mercy student(s). Keep these updated in Settings.</div>
+  return<div className="fu">
+    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:14}}>Dashboard</h2>
+    <div className="msg-warn">⚠ Reminders: {(ctx.directPay||[]).length} direct payment(s) on record. {(ctx.scholarships||[]).length} scholarship/mercy student(s). Verify these are current in Settings.</div>
     <div className="kg">
-      <div className="kpi" style={{borderLeftColor:"var(--green)"}}><div className="kl">Liquidity</div><div className="kv" style={{color:"var(--green)"}}>{N(ti-te)}</div></div>
-      <div className="kpi" style={{borderLeftColor:"var(--blue)"}}><div className="kl">Current Revenue</div><div className="kv">{N(ti-pt)}</div></div>
-      <div className="kpi" style={{borderLeftColor:"var(--accent)"}}><div className="kl">Prior Term</div><div className="kv">{N(pt)}</div></div>
-      <div className="kpi" style={{borderLeftColor:"var(--red)"}}><div className="kl">Expenses</div><div className="kv" style={{color:"var(--red)"}}>{N(te)}</div></div>
+      <div className="kpi" style={{"--accent":"var(--green)"}}><div className="kl">Live Liquidity</div><div className="kv" style={{color:"var(--green)"}}>{N(ti-te)}</div></div>
+      <div className="kpi" style={{"--accent":"var(--blue)"}}><div className="kl">Current Revenue</div><div className="kv">{N(ti-pt)}</div></div>
+      <div className="kpi" style={{"--accent":"var(--amber)"}}><div className="kl">Prior Term Recovery</div><div className="kv">{N(pt)}</div></div>
+      <div className="kpi" style={{"--accent":"var(--red)"}}><div className="kl">Total Expenses</div><div className="kv" style={{color:"var(--red)"}}>{N(te)}</div></div>
     </div>
-    {cStats.length>0&&<div className="card"><div className="ct">Collection by Class</div><div className="tw"><table><thead><tr><th>Class</th><th>Students</th><th className="r">Total Paid</th></tr></thead><tbody>{cStats.map(c=><tr key={c.c}><td>{c.c}</td><td>{c.n}</td><td className="my">{N(c.tp)}</td></tr>)}</tbody></table></div></div>}
-    {Object.keys(catBk).length>0&&<div className="card"><div className="ct">Income by Category</div>
+    {cStats.length>0&&<div className="card"><div className="sect">Collection by Class</div><div className="tw"><table><thead><tr><th>Class</th><th>Students</th><th className="r">Total Paid</th></tr></thead><tbody>{cStats.map(c=><tr key={c.c}><td style={{fontWeight:500}}>{c.c}</td><td style={{color:"var(--muted)"}}>{c.n}</td><td className="my">{N(c.tp)}</td></tr>)}</tbody></table></div></div>}
+    {Object.keys(catBk).length>0&&<div className="card"><div className="sect">Income by Category</div>
       {Object.entries(catBk).sort((a,b)=>b[1]-a[1]).map(([c,a])=>{const mx=Math.max(...Object.values(catBk));return<div key={c} className="bar-r"><span className="bar-l">{c}</span><div className="bar-t"><div className="bar-f" style={{width:(a/mx*100)+"%"}}/></div><span className="bar-v">{N(a)}</span></div>;})}
     </div>}
   </div>;
 }
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 // ACCOUNTING
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 function Acct(){
   const ctx=useApp();const ae=ctx.cashBook||[];
-  const inc=ae.filter(e=>e.entry_type==="Income"&&!e.reversed);
-  const exp=ae.filter(e=>e.entry_type==="Expense"&&!e.reversal_of);
+  const inc=ae.filter(e=>e.entry_type==="Income"&&!e.reversed);const exp=ae.filter(e=>e.entry_type==="Expense"&&!e.reversal_of);
   const ti=inc.reduce((s,e)=>s+e.amount,0);const te=exp.reduce((s,e)=>s+e.amount,0);const ns=ti-te;
   const pt=inc.filter(e=>e.is_prior_term).reduce((s,e)=>s+e.amount,0);
   const ci={};inc.forEach(e=>{ci[e.category]=(ci[e.category]||0)+e.amount});
@@ -1165,202 +1018,305 @@ function Acct(){
   const payroll=(ctx.salaries||[]).reduce((s,x)=>s+(x.netPay||0),0);
   const dtotal=(ctx.directPay||[]).reduce((s,x)=>s+(x.amount||0),0);
   const tStu=ALL_CLS.reduce((s,c)=>(ctx.students[c]||[]).length+s,0);
-  const tpStu=(ctx.categories||DEF_CATS).filter(c=>c!=="Outstanding/Backlog").reduce((s,c)=>s+(ctx.feeTargets?.[c]||0),0);
-  const expRev=tStu*tpStu;const colR=expRev>0?((ti/expRev)*100).toFixed(1):0;
-  const lt=(ctx.lessonWeeks||[]).reduce((s,w)=>s+w.grandTotal,0);
-  const ltch=(ctx.lessonWeeks||[]).reduce((s,w)=>s+w.totalTeacherPay,0);
-  const lpr=(ctx.lessonWeeks||[]).reduce((s,w)=>s+w.proprietorShare,0);
+  const lt=(ctx.lessonWeeks||[]).reduce((s,w)=>s+w.grandTotal,0);const ltch=(ctx.lessonWeeks||[]).reduce((s,w)=>s+w.totalTeacherPay,0);const lpr=(ctx.lessonWeeks||[]).reduce((s,w)=>s+w.proprietorShare,0);
   const revs=ae.filter(e=>e.reversal_of).length;const lgT=ae.filter(e=>e.amount>500000).length;
 
-  return<div className="fi">
-    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.1rem",marginBottom:12}}>🏦 Financial Accounting</h2>
-    <div className="card"><div className="ct">P&L — {ctx.termCfg?.term} {ctx.termCfg?.year}</div><div className="kg">
-      <div className="kpi" style={{borderLeftColor:"var(--green)"}}><div className="kl">Total Income</div><div className="kv" style={{color:"var(--green)"}}>{N(ti)}</div></div>
-      <div className="kpi" style={{borderLeftColor:"var(--red)"}}><div className="kl">Total Expenses</div><div className="kv" style={{color:"var(--red)"}}>{N(te)}</div></div>
-      <div className="kpi" style={{borderLeftColor:ns>=0?"var(--blue)":"var(--red)"}}><div className="kl">Net Surplus/Deficit</div><div className="kv" style={{color:ns>=0?"var(--blue)":"var(--red)"}}>{N(ns)}</div></div>
-      <div className="kpi" style={{borderLeftColor:"var(--accent)"}}><div className="kl">Collection Rate</div><div className="kv">{colR}%</div></div>
-    </div></div>
-    <div className="card"><div className="ct">Revenue by Category</div><div className="tw"><table><thead><tr><th>Category</th><th className="r">Amount</th><th className="r">%</th></tr></thead>
-    <tbody>{Object.entries(ci).sort((a,b)=>b[1]-a[1]).map(([c,a])=><tr key={c}><td>{c}</td><td className="my">{N(a)}</td><td className="my">{ti>0?(a/ti*100).toFixed(1)+"%":"0%"}</td></tr>)}
-    <tr style={{fontWeight:700,background:"var(--bg2)"}}><td>TOTAL</td><td className="my">{N(ti)}</td><td className="my">100%</td></tr>
+  return<div className="fu">
+    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:14}}>Financial Accounting</h2>
+    <div className="card" style={{background:"linear-gradient(135deg,var(--navy) 0%,var(--navy3) 100%)",border:"none"}}>
+      <div style={{color:"var(--gold2)",fontSize:".75rem",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12}}>P&L Summary — {ctx.termCfg?.term} {ctx.termCfg?.year}</div>
+      <div className="kg">
+        {[["Total Income",ti,"var(--gold)"],["Total Expenses",te,"var(--redbg)"],["Net Surplus",ns,ns>=0?"#86efac":"var(--redbg)"],["Payroll",payroll,"var(--slate3)"]].map(([l,v,c])=>
+          <div key={l} style={{background:"rgba(255,255,255,.06)",borderRadius:8,padding:"14px 16px"}}>
+            <div style={{fontSize:".64rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".5px",color:"rgba(255,255,255,.5)"}}>{l}</div>
+            <div style={{fontFamily:"var(--ff-m)",fontSize:"1.2rem",fontWeight:800,color:c,marginTop:5}}>{N(v)}</div>
+          </div>)}
+      </div>
+    </div>
+    <div className="card"><div className="sect">Revenue by Category</div><div className="tw"><table><thead><tr><th>Category</th><th className="r">Amount</th><th className="r">% of Total</th></tr></thead>
+    <tbody>{Object.entries(ci).sort((a,b)=>b[1]-a[1]).map(([c,a])=><tr key={c}><td style={{fontWeight:500}}>{c}</td><td className="my">{N(a)}</td><td style={{fontFamily:"var(--ff-m)",textAlign:"right",color:"var(--muted)"}}>{ti>0?(a/ti*100).toFixed(1)+"%":"0%"}</td></tr>)}
+    <tr style={{fontWeight:700,background:"var(--navy)",color:"#fff"}}><td style={{color:"#fff"}}>TOTAL</td><td style={{fontFamily:"var(--ff-m)",textAlign:"right",color:"var(--gold2)",fontWeight:700}}>{N(ti)}</td><td style={{color:"var(--gold3)",textAlign:"right",fontFamily:"var(--ff-m)"}}>100%</td></tr>
     </tbody></table></div></div>
-    <div className="card"><div className="ct">Expenses</div>{Object.keys(ce).length>0?<div className="tw"><table><thead><tr><th>Category</th><th className="r">Amount</th></tr></thead>
-    <tbody>{Object.entries(ce).sort((a,b)=>b[1]-a[1]).map(([c,a])=><tr key={c}><td>{c}</td><td className="mr">{N(a)}</td></tr>)}<tr style={{fontWeight:700,background:"var(--bg2)"}}><td>TOTAL</td><td className="mr">{N(te)}</td></tr></tbody></table></div>:<p className="hint">No expenses recorded.</p>}</div>
-    <div className="card"><div className="ct">Section A vs B</div><div className="tw"><table><thead><tr><th>Section</th><th className="r">Income</th><th className="r">Expense</th><th className="r">Net</th></tr></thead>
-    <tbody>
-      <tr><td>A — Early Childhood</td><td className="my">{N(sAi)}</td><td className="mr">{N(sAe)}</td><td className={sAi-sAe>=0?"my":"mr"}>{N(sAi-sAe)}</td></tr>
-      <tr><td>B — Middle & Senior</td><td className="my">{N(sBi)}</td><td className="mr">{N(sBe)}</td><td className={sBi-sBe>=0?"my":"mr"}>{N(sBi-sBe)}</td></tr>
-    </tbody></table></div></div>
-    <div className="card"><div className="ct">Lesson Income (Separate)</div><div className="kg">
-      <div className="kpi" style={{borderLeftColor:"var(--accent)"}}><div className="kl">Lesson Revenue</div><div className="kv">{N(lt)}</div></div>
-      <div className="kpi" style={{borderLeftColor:"var(--green)"}}><div className="kl">Teachers Paid</div><div className="kv">{N(ltch)}</div></div>
-      <div className="kpi" style={{borderLeftColor:"var(--blue)"}}><div className="kl">Proprietor</div><div className="kv">{N(lpr)}</div></div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+      <div className="card"><div className="sect">Section A</div><div style={{fontFamily:"var(--ff-m)",fontSize:".85rem"}}><div style={{padding:"6px 0",borderBottom:"1px solid var(--border2)",display:"flex",justifyContent:"space-between"}}><span>Income</span><strong style={{color:"var(--green)"}}>{N(sAi)}</strong></div><div style={{padding:"6px 0",borderBottom:"1px solid var(--border2)",display:"flex",justifyContent:"space-between"}}><span>Expense</span><strong style={{color:"var(--red)"}}>{N(sAe)}</strong></div><div style={{padding:"6px 0",display:"flex",justifyContent:"space-between",fontWeight:700}}><span>Net</span><strong style={{color:sAi-sAe>=0?"var(--green)":"var(--red)"}}>{N(sAi-sAe)}</strong></div></div></div>
+      <div className="card"><div className="sect">Section B</div><div style={{fontFamily:"var(--ff-m)",fontSize:".85rem"}}><div style={{padding:"6px 0",borderBottom:"1px solid var(--border2)",display:"flex",justifyContent:"space-between"}}><span>Income</span><strong style={{color:"var(--green)"}}>{N(sBi)}</strong></div><div style={{padding:"6px 0",borderBottom:"1px solid var(--border2)",display:"flex",justifyContent:"space-between"}}><span>Expense</span><strong style={{color:"var(--red)"}}>{N(sBe)}</strong></div><div style={{padding:"6px 0",display:"flex",justifyContent:"space-between",fontWeight:700}}><span>Net</span><strong style={{color:sBi-sBe>=0?"var(--green)":"var(--red)"}}>{N(sBi-sBe)}</strong></div></div></div>
+    </div>
+    <div className="card"><div className="sect">Lesson Income (Separate Ledger)</div><div className="kg">
+      <div className="kpi" style={{"--accent":"var(--navy)"}}><div className="kl">Total Lesson Revenue</div><div className="kv">{N(lt)}</div></div>
+      <div className="kpi" style={{"--accent":"var(--green)"}}><div className="kl">Teachers Paid</div><div className="kv">{N(ltch)}</div></div>
+      <div className="kpi" style={{"--accent":"var(--blue)"}}><div className="kl">Proprietor</div><div className="kv">{N(lpr)}</div></div>
     </div></div>
-    <div className="card"><div className="ct">Payroll & Special Items</div><div className="tw"><table><thead><tr><th>Item</th><th className="r">Amount</th></tr></thead>
+    <div className="card"><div className="sect">Special Items</div><div className="tw"><table><thead><tr><th>Item</th><th className="r">Value</th></tr></thead>
+    <tbody><tr><td>Direct to Proprietor</td><td className="my">{N(dtotal)}</td></tr><tr><td>Scholarship/Mercy Students</td><td style={{fontFamily:"var(--ff-m)",textAlign:"right"}}>{(ctx.scholarships||[]).length}</td></tr><tr><td>Prior Term Recovery</td><td className="my">{N(pt)}</td></tr><tr><td>Current Term Revenue</td><td className="my">{N(ti-pt)}</td></tr></tbody></table></div></div>
+    <div className="card" style={{borderTop:"3px solid var(--red)"}}><div className="sect">🛡 Audit Integrity</div><div className="tw"><table><thead><tr><th>Check</th><th>Status</th><th>Detail</th></tr></thead>
     <tbody>
-      <tr><td>Staff Payroll</td><td className="mr">{N(payroll)}</td></tr>
-      <tr><td>Direct to Proprietor</td><td className="my">{N(dtotal)}</td></tr>
-      <tr><td>Scholarship/Mercy</td><td>{(ctx.scholarships||[]).length} students</td></tr>
-      <tr><td>Current Term Revenue</td><td className="my">{N(ti-pt)}</td></tr>
-      <tr><td>Prior Term Recovery</td><td className="my">{N(pt)}</td></tr>
-    </tbody></table></div></div>
-    <div className="card"><div className="ct">Expected vs Actual</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-      {[["Expected",expRev,"var(--bg2)","var(--ink)"],["Collected",ti,"var(--greenBg)","var(--green)"],["Gap",expRev-ti,expRev-ti>0?"var(--redBg)":"var(--greenBg)",expRev-ti>0?"var(--red)":"var(--green)"]].map(([l,v,bg,c])=>
-        <div key={l} style={{flex:1,minWidth:160,padding:12,background:bg,borderRadius:5,textAlign:"center"}}><div className="flb">{l}</div><div style={{fontFamily:"var(--ff-m)",fontSize:"1.1rem",fontWeight:700,color:c,marginTop:3}}>{N(v)}</div></div>)}
-    </div></div>
-    <div className="card" style={{borderLeft:"4px solid var(--red)"}}><div className="ct">🛡️ Audit Integrity</div><div className="tw"><table><thead><tr><th>Check</th><th>Status</th><th>Detail</th></tr></thead>
-    <tbody>
-      <tr><td>Reversals</td><td>{revs>5?<span className="badge bdr">HIGH</span>:<span className="badge bdg">OK</span>}</td><td>{revs} reversal(s)</td></tr>
-      <tr><td>Large Txns (&gt;₦500k)</td><td>{lgT>0?<span className="badge bdo">REVIEW</span>:<span className="badge bdg">OK</span>}</td><td>{lgT} flagged</td></tr>
-      <tr><td>Unread Alerts</td><td><span className="badge bdb">{(ctx.notifs||[]).filter(n=>!n.read).length}</span></td><td>Pending review</td></tr>
+      <tr><td>Reversal Count</td><td>{revs>5?<span className="badge bdr">HIGH ({revs})</span>:<span className="badge bdg">OK ({revs})</span>}</td><td style={{color:"var(--muted)",fontSize:".76rem"}}>Review if excessive</td></tr>
+      <tr><td>Large Transactions (&gt;₦500k)</td><td>{lgT>0?<span className="badge bdo">{lgT} flagged</span>:<span className="badge bdg">None</span>}</td><td style={{color:"var(--muted)",fontSize:".76rem"}}>Requires verification</td></tr>
+      <tr><td>AI Alerts (Unread)</td><td><span className="badge bdb">{(ctx.notifs||[]).filter(n=>!n.read).length}</span></td><td style={{color:"var(--muted)",fontSize:".76rem"}}>Click 🔔 to review</td></tr>
     </tbody></table></div></div>
   </div>;
 }
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 // SALARIES
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 function Sal(){
-  const ctx=useApp();
-  const[nm,setNm]=useState("");const[py,setPy]=useState("");const[msg,setMsg]=useState(null);
+  const ctx=useApp();const[nm,setNm]=useState("");const[py,setPy]=useState("");const[msg,setMsg]=useState(null);
   const total=(ctx.salaries||[]).reduce((s,x)=>s+(x.netPay||0),0);
-  async function add(){
-    if(!nm.trim()||!py)return;
-    await ctx.saveSal({sid:uid(),name:nm.trim(),netPay:parseFloat(py),month:today().slice(0,7),created_at:new Date().toISOString()});
-    ctx.addAudit("SALARY",`${nm.trim()} — ${N(parseFloat(py))}`,ctx.session.name);
-    setNm("");setPy("");setMsg({t:0,m:"Staff added."});setTimeout(()=>setMsg(null),2e3);
-  }
-  return<div className="fi">
-    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.1rem",marginBottom:12}}>💰 Salaries</h2>
-    {msg&&<div className="mo">{msg.m}</div>}
-    <div className="card"><div className="fr">
-      <div className="fl" style={{flex:2}}><span className="flb">Name</span><input value={nm} onChange={e=>setNm(e.target.value)} className="inp" placeholder="Staff full name"/></div>
+  async function add(){if(!nm.trim()||!py)return;await ctx.saveSal({sid:uid(),name:nm.trim(),netPay:parseFloat(py),month:today().slice(0,7),created_at:new Date().toISOString()});ctx.addAudit("SALARY",`${nm.trim()} — ${N(parseFloat(py))}`,ctx.session?.name);setNm("");setPy("");setMsg({t:0,m:"Staff record added."});setTimeout(()=>setMsg(null),2e3)}
+  return<div className="fu">
+    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:14}}>Salaries Portal</h2>
+    {msg&&<div className="msg-ok">{msg.m}</div>}
+    <div className="card"><div className="sect">Add Staff</div><div className="fr">
+      <div className="fl" style={{flex:2}}><span className="flb">Full Name</span><input value={nm} onChange={e=>setNm(e.target.value)} className="inp" placeholder="Staff full name"/></div>
       <div className="fl" style={{flex:1}}><span className="flb">Net Pay (₦)</span><input type="number" value={py} onChange={e=>setPy(e.target.value)} className="inpm" placeholder="0.00"/></div>
-      <button className="btn bp" onClick={add}>ADD</button>
+      <button className="btn btn-gold" onClick={add}>ADD STAFF</button>
     </div></div>
-    <div className="card"><div className="fb" style={{marginBottom:8}}><div className="ct">Staff</div><span style={{fontFamily:"var(--ff-m)",fontSize:".76rem"}}>Total: {N(total)}</span></div>
+    <div className="card"><div className="fb" style={{marginBottom:10}}><div className="sect" style={{marginBottom:0}}>Staff List</div><div style={{fontFamily:"var(--ff-m)",fontSize:".78rem",color:"var(--navy)",fontWeight:700}}>Total Payroll: {N(total)}</div></div>
     <div className="tw"><table><thead><tr><th>#</th><th>Name</th><th className="r">Net Pay</th><th>Month</th></tr></thead>
-    <tbody>{(ctx.salaries||[]).length===0&&<tr><td colSpan={4} className="er">No records.</td></tr>}
-    {(ctx.salaries||[]).map((s,i)=><tr key={s.sid}><td>{i+1}</td><td>{s.name}</td><td className="my">{N(s.netPay)}</td><td>{s.month}</td></tr>)}
+    <tbody>{(ctx.salaries||[]).length===0&&<tr><td colSpan={4} className="er">No staff records.</td></tr>}
+    {(ctx.salaries||[]).map((s,i)=><tr key={s.sid}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:500}}>{s.name}</td><td className="my">{N(s.netPay)}</td><td style={{color:"var(--muted)"}}>{s.month}</td></tr>)}
     </tbody></table></div></div>
   </div>;
 }
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 // EXTERNAL EXAMS
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 function ExamPortal(){
-  const ctx=useApp();
-  const[sc,setSc]=useState("Primary 5");
-  const[en,setEn]=useState({student:"",examType:"",amount:""});
-  const[msg,setMsg]=useState(null);
-  const sl=(ctx.students[sc]||[]).map(s=>s.name);
-  const fl=(ctx.extExams||[]).filter(e=>e.class_name===sc);
-  async function add(){
-    if(!en.student||!en.examType||!en.amount)return;
-    await ctx.saveExt({eid:uid(),class_name:sc,...en,amount:parseFloat(en.amount),date:today(),created_at:new Date().toISOString()});
-    setEn({student:"",examType:"",amount:""});setMsg({t:0,m:"Added."});setTimeout(()=>setMsg(null),2e3);
-  }
-  return<div className="fi">
-    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.1rem",marginBottom:12}}>📝 External Exams</h2>
-    {msg&&<div className="mo">{msg.m}</div>}
+  const ctx=useApp();const[sc,setSc]=useState("Primary 5");const[en,setEn]=useState({student:"",examType:"",amount:""});const[msg,setMsg]=useState(null);
+  const sl=(ctx.students[sc]||[]).map(s=>s.name);const fl=(ctx.extExams||[]).filter(e=>e.class_name===sc);
+  async function add(){if(!en.student||!en.examType||!en.amount)return;await ctx.saveExt({eid:uid(),class_name:sc,...en,amount:parseFloat(en.amount),date:today(),created_at:new Date().toISOString()});setEn({student:"",examType:"",amount:""});setMsg({t:0,m:"Exam entry added."});setTimeout(()=>setMsg(null),2e3)}
+  return<div className="fu">
+    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:14}}>External Exams</h2>
+    {msg&&<div className="msg-ok">{msg.m}</div>}
     <div className="cp">{EXAM_CLS.map(c=><button key={c} className={"pill"+(sc===c?" a":"")} onClick={()=>setSc(c)}>{c}</button>)}</div>
     <div className="card"><div className="fr">
       <div className="fl"><span className="flb">Student</span><select value={en.student} onChange={e=>setEn({...en,student:e.target.value})} className="sel"><option value="">—</option>{sl.map(n=><option key={n}>{n}</option>)}</select></div>
-      <div className="fl"><span className="flb">Exam</span><input value={en.examType} onChange={e=>setEn({...en,examType:e.target.value})} className="inp" placeholder="e.g. WAEC, BECE"/></div>
+      <div className="fl"><span className="flb">Exam Type</span><input value={en.examType} onChange={e=>setEn({...en,examType:e.target.value})} className="inp" placeholder="e.g. WAEC, BECE"/></div>
       <div className="fl"><span className="flb">Amount (₦)</span><input type="number" value={en.amount} onChange={e=>setEn({...en,amount:e.target.value})} className="inpm" placeholder="0" style={{width:120}}/></div>
-      <button className="btn bp" onClick={add}>ADD</button>
+      <button className="btn btn-gold" onClick={add}>ADD</button>
     </div></div>
     <div className="tw"><table><thead><tr><th>#</th><th>Student</th><th>Exam</th><th className="r">Amount</th><th>Date</th></tr></thead>
     <tbody>{fl.length===0&&<tr><td colSpan={5} className="er">No entries for {sc}.</td></tr>}
-    {fl.map((e,i)=><tr key={e.eid}><td>{i+1}</td><td>{e.student}</td><td>{e.examType}</td><td className="my">{N(e.amount)}</td><td>{fmtD(e.date)}</td></tr>)}
+    {fl.map((e,i)=><tr key={e.eid}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:500}}>{e.student}</td><td>{e.examType}</td><td className="my">{N(e.amount)}</td><td>{fmtD(e.date)}</td></tr>)}
     </tbody></table></div>
   </div>;
 }
 
-// ═══════════════════════════════════════════════════
-// SETTINGS
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// USER MANAGEMENT
+// ══════════════════════════════════════════════════
+function UserMgmt(){
+  const{session,addAudit}=useApp();const[users,setUsers]=useState([]);const[form,setForm]=useState({name:"",username:"",role:"bursarA",section:"A",pin:"",pin2:""});const[msg,setMsg]=useState(null);const[loading,setLoading]=useState(true);
+  useEffect(()=>{(async()=>{try{const r=await sbG("ssfp_users","order=name.asc");setUsers(r)}catch{setUsers(LS.g("ssfp_users",[]))}setLoading(false)})()},[]);
+  async function addUser(){
+    if(!form.name.trim()||!form.username.trim()||!form.pin){setMsg({t:1,m:"Fill name, username and PIN."});return}
+    if(form.pin!==form.pin2){setMsg({t:1,m:"PINs do not match."});return}
+    if(form.pin.length<4||!/^\d+$/.test(form.pin)){setMsg({t:1,m:"PIN must be 4+ digits."});return}
+    if(form.username.trim().toLowerCase()===PROP_USER){setMsg({t:1,m:"That username is reserved."});return}
+    if(users.find(u=>u.username.toLowerCase()===form.username.trim().toLowerCase())){setMsg({t:1,m:"Username exists."});return}
+    const hash=await hashPin(form.pin,form.username.trim().toLowerCase());
+    const nu={uid:uid(),name:form.name.trim(),username:form.username.trim().toLowerCase(),role:form.role,section:form.section,pin_hash:hash,is_active:true,created_by:session.name,created_at:new Date().toISOString()};
+    try{await sbP("ssfp_users",nu)}catch(e){console.error(e)}
+    const up=[...users,nu];setUsers(up);LS.s("ssfp_users",up);
+    addAudit("ADD_USER",`Created ${nu.username} (${nu.role})`,session.name);
+    setForm({name:"",username:"",role:"bursarA",section:"A",pin:"",pin2:""});
+    setMsg({t:0,m:`✓ User "${nu.username}" created.`});setTimeout(()=>setMsg(null),3e3);
+  }
+  async function toggle(id,active){try{await sbPA("ssfp_users",`uid=eq.${id}`,{is_active:active})}catch{}setUsers(p=>p.map(u=>u.uid===id?{...u,is_active:active}:u));addAudit(active?"ENABLE":"DISABLE",`User ${id}`,session.name)}
+  async function resetPin(u){const p=prompt(`New PIN for ${u.name} (digits only):`);if(!p||!/^\d{4,8}$/.test(p)){alert("PIN must be 4-8 digits.");return}const h=await hashPin(p,u.username);try{await sbPA("ssfp_users",`uid=eq.${u.uid}`,{pin_hash:h})}catch{}setUsers(p2=>p2.map(x=>x.uid===u.uid?{...x,pin_hash:h}:x));addAudit("RESET_PIN",`PIN reset for ${u.username}`,session.name);alert("✓ PIN updated.")}
+
+  return<div className="fu">
+    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:14}}>User Management</h2>
+    {msg&&<div className={msg.t?"msg-err":"msg-ok"}>{msg.m}</div>}
+    <div className="card"><div className="sect">Add Authorised User</div>
+      <div className="gf2">
+        <div className="fl"><span className="flb">Full Name</span><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} className="inp" placeholder="Staff full name"/></div>
+        <div className="fl"><span className="flb">Username</span><input value={form.username} onChange={e=>setForm({...form,username:e.target.value})} className="inp" placeholder="e.g. mrs.adeyemi"/></div>
+        <div className="fl"><span className="flb">Role</span><select value={form.role} onChange={e=>setForm({...form,role:e.target.value})} className="sel"><option value="admin">Administrator</option><option value="bursarA">Bursar — Section A</option><option value="bursarB">Bursar — Section B</option></select></div>
+        <div className="fl"><span className="flb">Section Access</span><select value={form.section} onChange={e=>setForm({...form,section:e.target.value})} className="sel"><option value="A">Section A</option><option value="B">Section B</option><option value="both">Both Sections</option></select></div>
+        <div className="fl"><span className="flb">PIN (digits)</span><input type="password" inputMode="numeric" maxLength={8} value={form.pin} onChange={e=>setForm({...form,pin:e.target.value.replace(/\D/g,"")})} className="inp" placeholder="4–8 digit PIN"/></div>
+        <div className="fl"><span className="flb">Confirm PIN</span><input type="password" inputMode="numeric" maxLength={8} value={form.pin2} onChange={e=>setForm({...form,pin2:e.target.value.replace(/\D/g,"")})} className="inp" placeholder="Repeat PIN"/></div>
+      </div>
+      <button className="btn btn-gold" style={{marginTop:14}} onClick={addUser}>CREATE USER</button>
+      <p className="hint" style={{marginTop:6}}>PINs are hashed with SHA-256 before storage. Never stored in plain text.</p>
+    </div>
+    <div className="card"><div className="sect">Active Users</div>
+      {loading?<p className="hint">Loading…</p>:
+      <div className="tw"><table><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Section</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        {users.length===0&&<tr><td colSpan={6} className="er">No users yet.</td></tr>}
+        {users.map(u=><tr key={u.uid}><td style={{fontWeight:600}}>{u.name}</td><td className="mn">{u.username}</td>
+          <td><span className={"badge "+(u.role==="admin"?"bdr":u.role==="bursarA"?"bdb":"bdg")}>{u.role}</span></td>
+          <td style={{color:"var(--muted)"}}>{u.section}</td>
+          <td>{u.is_active?<span className="badge bdg">Active</span>:<span className="badge bdr">Disabled</span>}</td>
+          <td><div style={{display:"flex",gap:5}}>
+            <button className={"btn btn-sm "+(u.is_active?"btn-red":"btn-green")} onClick={()=>toggle(u.uid,!u.is_active)}>{u.is_active?"Disable":"Enable"}</button>
+            <button className="btn btn-ghost btn-sm" onClick={()=>resetPin(u)}>Reset PIN</button>
+          </div></td>
+        </tr>)}
+      </tbody></table></div>}
+    </div>
+  </div>;
+}
+
+// ══════════════════════════════════════════════════
+// SETTINGS — per-class fee targets + school profile + AI
+// ══════════════════════════════════════════════════
 function Settings(){
-  const ctx=useApp();
-  const[nc,setNc]=useState("");const[msg,setMsg]=useState(null);
+  const ctx=useApp();const isProp=ctx.session?.isProp||false;
+  const[nc,setNc]=useState("");const[msg,setMsg]=useState(null);const[saving,setSaving]=useState(false);
+  // Local copies for editing before save
+  const[localTargets,setLocalTargets]=useState(ctx.feeTargets||{});
+  const[localProfile,setLocalProfile]=useState(ctx.schoolProfile||{});
+  const[localAI,setLocalAI]=useState(ctx.aiConfig||{});
+  const[selCls,setSelCls]=useState(ALL_CLS[0]);
   const[dp,setDp]=useState({student:"",class_name:ALL_CLS[0],amount:""});
   const[sp,setSp]=useState({student:"",class_name:ALL_CLS[0],type:"Scholarship"});
+  const[showPinChange,setShowPinChange]=useState(false);const[oldPin,setOldPin]=useState("");const[newPin,setNewPin]=useState("");const[newPin2,setNewPin2]=useState("");
 
-  function addCat(){
-    if(!nc.trim()||(ctx.categories||[]).includes(nc.trim()))return;
-    const u=[...(ctx.categories||[]),nc.trim()];ctx.updCats(u);
-    ctx.updTermCfg({...ctx.termCfg,activeCats:{...ctx.termCfg?.activeCats,[nc.trim()]:true}});
-    setNc("");setMsg({t:0,m:`Added "${nc.trim()}"`});setTimeout(()=>setMsg(null),2e3);
-  }
-  function togCat(c){
-    if(c==="Outstanding/Backlog"){setMsg({t:1,m:"Cannot disable."});setTimeout(()=>setMsg(null),2e3);return}
-    ctx.updTermCfg({...ctx.termCfg,activeCats:{...ctx.termCfg?.activeCats,[c]:!ctx.termCfg?.activeCats?.[c]}});
-  }
-  function setTgt(c,v){ctx.updTargets({...ctx.feeTargets,[c]:parseFloat(v)||0})}
-  async function addDP(){
-    if(!dp.student.trim())return;
-    await ctx.saveDP({did:uid(),...dp,amount:parseFloat(dp.amount)||0,date:today(),created_at:new Date().toISOString()});
-    setDp({student:"",class_name:ALL_CLS[0],amount:""});setMsg({t:0,m:"Recorded."});setTimeout(()=>setMsg(null),2e3);
-  }
-  async function addSch(){
-    if(!sp.student.trim())return;
-    await ctx.saveSch({scid:uid(),...sp,date:today(),created_at:new Date().toISOString()});
-    setSp({student:"",class_name:ALL_CLS[0],type:"Scholarship"});setMsg({t:0,m:"Recorded."});setTimeout(()=>setMsg(null),2e3);
+  useEffect(()=>{setLocalTargets(ctx.feeTargets||{})},[ctx.feeTargets]);
+  useEffect(()=>{setLocalProfile(ctx.schoolProfile||{})},[ctx.schoolProfile]);
+  useEffect(()=>{setLocalAI(ctx.aiConfig||{})},[ctx.aiConfig]);
+
+  function setTgt(cls,c,v){setLocalTargets(prev=>({...prev,[cls]:{...(prev[cls]||{}),[c]:parseFloat(v)||0}}))}
+
+  async function saveAll(){
+    setSaving(true);
+    ctx.setFeeTargets(localTargets);ctx.setSchoolProfile(localProfile);ctx.setAiConfig(localAI);
+    await ctx.saveAllSettings(ctx.categories,localTargets,ctx.termCfg,ctx.lessonCur,localProfile,localAI);
+    setSaving(false);setMsg({t:0,m:"✓ All settings saved successfully."});setTimeout(()=>setMsg(null),4e3);
   }
 
-  return<div className="fi">
-    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.1rem",marginBottom:12}}>⚙️ Settings</h2>
-    {msg&&<div className={msg.t?"me":"mo"}>{msg.m}</div>}
-    <div className="card"><div className="ct">Term & Year</div><div className="fr">
-      <div className="fl"><span className="flb">Term</span><select value={ctx.termCfg?.term||"Term 1"} onChange={e=>ctx.updTermCfg({...ctx.termCfg,term:e.target.value})} className="sel"><option>Term 1</option><option>Term 2</option><option>Term 3</option></select></div>
-      <div className="fl"><span className="flb">Year</span><input value={ctx.termCfg?.year||""} onChange={e=>ctx.updTermCfg({...ctx.termCfg,year:e.target.value})} className="inp" style={{width:140}}/></div>
+  function addCat(){if(!nc.trim()||(ctx.categories||[]).includes(nc.trim()))return;const u=[...(ctx.categories||[]),nc.trim()];ctx.setCategories(u);ctx.setTermCfg({...ctx.termCfg,activeCats:{...(ctx.termCfg?.activeCats||{}),[nc.trim()]:true}});setNc("");setMsg({t:0,m:`Category "${nc.trim()}" added. Click Save to persist.`});setTimeout(()=>setMsg(null),3e3)}
+  function togCat(c){if(c==="Outstanding/Backlog"){setMsg({t:1,m:"Cannot disable Outstanding/Backlog."});setTimeout(()=>setMsg(null),2e3);return}ctx.setTermCfg({...ctx.termCfg,activeCats:{...(ctx.termCfg?.activeCats||{}),[c]:!(ctx.termCfg?.activeCats?.[c])}})}
+
+  async function changePropPin(){
+    const ok=await checkPropPin(oldPin);if(!ok){setMsg({t:1,m:"Old PIN incorrect."});return}
+    if(newPin!==newPin2){setMsg({t:1,m:"New PINs do not match."});return}
+    if(!/^\d{4,8}$/.test(newPin)){setMsg({t:1,m:"PIN must be 4-8 digits."});return}
+    const hash=await hashPin(newPin,PROP_USER);LS.s(PROP_PIN_KEY,hash);
+    setOldPin("");setNewPin("");setNewPin2("");setShowPinChange(false);setMsg({t:0,m:"✓ Proprietor PIN updated successfully."});setTimeout(()=>setMsg(null),3e3);
+  }
+
+  async function addDP(){if(!dp.student.trim())return;await ctx.saveDP({did:uid(),...dp,amount:parseFloat(dp.amount)||0,date:today(),created_at:new Date().toISOString()});setDp({student:"",class_name:ALL_CLS[0],amount:""});setMsg({t:0,m:"Direct payment recorded."});setTimeout(()=>setMsg(null),2e3)}
+  async function addSch(){if(!sp.student.trim())return;await ctx.saveSch({scid:uid(),...sp,date:today(),created_at:new Date().toISOString()});setSp({student:"",class_name:ALL_CLS[0],type:"Scholarship"});setMsg({t:0,m:"Scholarship recorded."});setTimeout(()=>setMsg(null),2e3)}
+
+  return<div className="fu">
+    <div className="fb" style={{marginBottom:16}}>
+      <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)"}}>Settings</h2>
+      <button className="btn btn-save" onClick={saveAll} disabled={saving}>{saving?"Saving…":"💾 SAVE ALL SETTINGS"}</button>
+    </div>
+    {msg&&<div className={msg.t?"msg-err":"msg-ok"}>{msg.m}</div>}
+
+    {/* School Profile */}
+    <div className="card"><div className="sect">School Profile & Receipt Details</div>
+      <div className="gf2">
+        <div className="fl"><span className="flb">School Name</span><input value={localProfile.name||""} onChange={e=>setLocalProfile({...localProfile,name:e.target.value})} className="inp" placeholder={SCHOOL_NAME}/></div>
+        <div className="fl"><span className="flb">Address</span><input value={localProfile.address||""} onChange={e=>setLocalProfile({...localProfile,address:e.target.value})} className="inp" placeholder="School address"/></div>
+        <div className="fl"><span className="flb">Phone</span><input value={localProfile.phone||""} onChange={e=>setLocalProfile({...localProfile,phone:e.target.value})} className="inp" placeholder="+234…"/></div>
+        <div className="fl"><span className="flb">Email</span><input value={localProfile.email||""} onChange={e=>setLocalProfile({...localProfile,email:e.target.value})} className="inp" placeholder="school@email.com"/></div>
+        <div className="fl"><span className="flb">Principal / Head Teacher</span><input value={localProfile.principal||""} onChange={e=>setLocalProfile({...localProfile,principal:e.target.value})} className="inp" placeholder="Full name"/></div>
+        <div className="fl"><span className="flb">School Motto</span><input value={localProfile.motto||""} onChange={e=>setLocalProfile({...localProfile,motto:e.target.value})} className="inp" placeholder="Optional motto"/></div>
+      </div>
+      <div className="fl" style={{marginTop:10}}><span className="flb">Stamp / Signature Note (appears on receipts)</span><textarea value={localProfile.stampNote||""} onChange={e=>setLocalProfile({...localProfile,stampNote:e.target.value})} className="textarea" rows={2} placeholder="e.g. Authorised signature required. This receipt is valid only when stamped."/></div>
+      <p className="hint" style={{marginTop:6}}>Click "Save All Settings" above to apply changes to receipts.</p>
+    </div>
+
+    {/* Term */}
+    <div className="card"><div className="sect">Term & Academic Year</div><div className="fr">
+      <div className="fl"><span className="flb">Current Term</span><select value={ctx.termCfg?.term||"Term 1"} onChange={e=>ctx.setTermCfg({...ctx.termCfg,term:e.target.value})} className="sel" style={{width:140}}><option>Term 1</option><option>Term 2</option><option>Term 3</option></select></div>
+      <div className="fl"><span className="flb">Academic Year</span><input value={ctx.termCfg?.year||""} onChange={e=>ctx.setTermCfg({...ctx.termCfg,year:e.target.value})} className="inp" style={{width:150}}/></div>
     </div></div>
-    <div className="card"><div className="ct">Fee Categories & Targets</div>
-      <p className="hint" style={{marginBottom:10}}>Target = amount payable per student per term. Toggle ON/OFF per term.</p>
-      {(ctx.categories||DEF_CATS).map(c=><div key={c} style={{display:"flex",alignItems:"center",padding:"6px 0",borderBottom:"1px solid var(--bg2)",gap:8}}>
-        <span style={{flex:1,fontSize:".82rem"}}>{c}</span>
-        <input type="number" value={ctx.feeTargets?.[c]||""} onChange={e=>setTgt(c,e.target.value)} className="inpm" placeholder="₦ Target" style={{width:110,padding:"3px 6px",fontSize:".72rem"}}/>
+
+    {/* Per-class fee targets */}
+    <div className="card"><div className="sect">Fee Categories & Per-Class Targets</div>
+      <p className="hint" style={{marginBottom:12}}>Set the target amount payable per student for each class. Different classes can have different amounts. Toggle ON/OFF per term.</p>
+      <div className="cp" style={{marginBottom:14}}>{ALL_CLS.map(c=><button key={c} className={"pill"+(selCls===c?" a":"")} onClick={()=>setSelCls(c)}>{c}</button>)}</div>
+      <div style={{fontWeight:600,fontSize:".8rem",color:"var(--navy)",marginBottom:8}}>Fee Targets for <strong>{selCls}</strong></div>
+      {(ctx.categories||DEF_CATS).map(c=><div key={c} style={{display:"flex",alignItems:"center",padding:"8px 0",borderBottom:"1px solid var(--border2)",gap:10}}>
+        <span style={{flex:1,fontSize:".84rem",fontWeight:500}}>{c}</span>
+        <input type="number" value={(localTargets[selCls]||{})[c]||""} onChange={e=>setTgt(selCls,c,e.target.value)} className="inpm" placeholder="₦ Target" style={{width:120,padding:"5px 8px",fontSize:".76rem"}}/>
         <button onClick={()=>togCat(c)} className={ctx.termCfg?.activeCats?.[c]!==false?"ton":"tof"}>{ctx.termCfg?.activeCats?.[c]!==false?"ON":"OFF"}</button>
       </div>)}
-      <div className="fr" style={{marginTop:10}}><input value={nc} onChange={e=>setNc(e.target.value)} className="inp" placeholder="New category name" style={{flex:1}} onKeyDown={e=>e.key==="Enter"&&addCat()}/><button className="btn bp bs" onClick={addCat}>ADD</button></div>
-    </div>
-    <div className="card"><div className="ct">💼 Direct Payments (to Proprietor)</div>
-      <p className="hint" style={{marginBottom:8}}>Parents who pay proprietor directly. Reflected in accounting.</p>
-      <div className="fr">
-        <div className="fl" style={{flex:2}}><span className="flb">Student</span><input value={dp.student} onChange={e=>setDp({...dp,student:e.target.value})} className="inp" placeholder="Name"/></div>
-        <div className="fl" style={{flex:1}}><span className="flb">Class</span><select value={dp.class_name} onChange={e=>setDp({...dp,class_name:e.target.value})} className="sel">{ALL_CLS.map(c=><option key={c}>{c}</option>)}</select></div>
-        <div className="fl"><span className="flb">Amount</span><input type="number" value={dp.amount} onChange={e=>setDp({...dp,amount:e.target.value})} className="inpm" placeholder="0" style={{width:110}}/></div>
-        <button className="btn bp bs" onClick={addDP}>RECORD</button>
+      <div className="fr" style={{marginTop:12}}>
+        <input value={nc} onChange={e=>setNc(e.target.value)} className="inp" style={{flex:1}} placeholder="New category name" onKeyDown={e=>e.key==="Enter"&&addCat()}/>
+        <button className="btn btn-outline btn-sm" onClick={addCat}>ADD CATEGORY</button>
       </div>
-      {(ctx.directPay||[]).length>0&&<div className="tw" style={{marginTop:8}}><table><thead><tr><th>Student</th><th>Class</th><th className="r">Amount</th><th>Date</th></tr></thead>
+    </div>
+
+    {/* AI Config */}
+    <div className="card"><div className="sect">✦ AI Configuration (OpenRouter)</div>
+      <div className="gf2">
+        <div className="fl"><span className="flb">OpenRouter API Key</span><input type="password" value={localAI.apiKey||""} onChange={e=>setLocalAI({...localAI,apiKey:e.target.value})} className="inp" placeholder="sk-or-…"/></div>
+        <div className="fl"><span className="flb">AI Model</span>
+          <select value={localAI.model||""} onChange={e=>setLocalAI({...localAI,model:e.target.value})} className="sel">
+            <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash (Free)</option>
+            <option value="google/gemini-pro">Gemini Pro</option>
+            <option value="anthropic/claude-3-haiku">Claude 3 Haiku</option>
+            <option value="anthropic/claude-3-sonnet">Claude 3 Sonnet</option>
+            <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+            <option value="openai/gpt-4o">GPT-4o</option>
+            <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 8B (Free)</option>
+          </select>
+        </div>
+      </div>
+      <p className="hint" style={{marginTop:6}}>AI powers: audit watchdog, anomaly detection, and OCR name extraction. Click "Save All Settings" to apply.</p>
+    </div>
+
+    {/* Proprietor PIN change (only visible to proprietor) */}
+    {isProp&&<div className="card" style={{borderTop:"3px solid var(--gold)"}}><div className="sect">🔑 Change Proprietor PIN</div>
+      {!showPinChange?<button className="btn btn-outline btn-sm" onClick={()=>setShowPinChange(true)}>Change My PIN</button>:
+      <div className="gf2">
+        <div className="fl"><span className="flb">Current PIN</span><input type="password" inputMode="numeric" value={oldPin} onChange={e=>setOldPin(e.target.value.replace(/\D/g,""))} className="inp" placeholder="Current PIN" maxLength={8}/></div>
+        <div className="fl"><span className="flb">New PIN</span><input type="password" inputMode="numeric" value={newPin} onChange={e=>setNewPin(e.target.value.replace(/\D/g,""))} className="inp" placeholder="New 4–8 digit PIN" maxLength={8}/></div>
+        <div className="fl"><span className="flb">Confirm New PIN</span><input type="password" inputMode="numeric" value={newPin2} onChange={e=>setNewPin2(e.target.value.replace(/\D/g,""))} className="inp" placeholder="Repeat new PIN" maxLength={8}/></div>
+      </div>}
+      {showPinChange&&<div className="fr" style={{marginTop:10}}><button className="btn btn-gold" onClick={changePropPin}>UPDATE PIN</button><button className="btn btn-ghost btn-sm" onClick={()=>setShowPinChange(false)}>Cancel</button></div>}
+      <p className="hint" style={{marginTop:6}}>PIN is hashed and stored locally only. Never in the database.</p>
+    </div>}
+
+    {/* Direct Payments */}
+    <div className="card"><div className="sect">💼 Direct Payments (to Proprietor)</div>
+      <div className="fr">
+        <div className="fl" style={{flex:2}}><span className="flb">Student</span><input value={dp.student} onChange={e=>setDp({...dp,student:e.target.value})} className="inp" placeholder="Student name"/></div>
+        <div className="fl" style={{flex:1}}><span className="flb">Class</span><select value={dp.class_name} onChange={e=>setDp({...dp,class_name:e.target.value})} className="sel">{ALL_CLS.map(c=><option key={c}>{c}</option>)}</select></div>
+        <div className="fl"><span className="flb">Amount (₦)</span><input type="number" value={dp.amount} onChange={e=>setDp({...dp,amount:e.target.value})} className="inpm" placeholder="0" style={{width:120}}/></div>
+        <button className="btn btn-primary btn-sm" onClick={addDP}>RECORD</button>
+      </div>
+      {(ctx.directPay||[]).length>0&&<div className="tw" style={{marginTop:10}}><table><thead><tr><th>Student</th><th>Class</th><th className="r">Amount</th><th>Date</th></tr></thead>
       <tbody>{(ctx.directPay||[]).map(d=><tr key={d.did}><td>{d.student}</td><td>{d.class_name}</td><td className="my">{N(d.amount)}</td><td>{fmtD(d.date)}</td></tr>)}</tbody></table></div>}
     </div>
-    <div className="card"><div className="ct">🎓 Scholarship / Mercy</div>
+
+    {/* Scholarships */}
+    <div className="card"><div className="sect">🎓 Scholarship / Mercy of School</div>
       <div className="fr">
-        <div className="fl" style={{flex:2}}><span className="flb">Student</span><input value={sp.student} onChange={e=>setSp({...sp,student:e.target.value})} className="inp" placeholder="Name"/></div>
+        <div className="fl" style={{flex:2}}><span className="flb">Student</span><input value={sp.student} onChange={e=>setSp({...sp,student:e.target.value})} className="inp" placeholder="Student name"/></div>
         <div className="fl" style={{flex:1}}><span className="flb">Class</span><select value={sp.class_name} onChange={e=>setSp({...sp,class_name:e.target.value})} className="sel">{ALL_CLS.map(c=><option key={c}>{c}</option>)}</select></div>
         <div className="fl"><span className="flb">Type</span><select value={sp.type} onChange={e=>setSp({...sp,type:e.target.value})} className="sel"><option>Scholarship</option><option>Mercy of School</option></select></div>
-        <button className="btn bp bs" onClick={addSch}>RECORD</button>
+        <button className="btn btn-primary btn-sm" onClick={addSch}>RECORD</button>
       </div>
-      {(ctx.scholarships||[]).length>0&&<div className="tw" style={{marginTop:8}}><table><thead><tr><th>Student</th><th>Class</th><th>Type</th><th>Date</th></tr></thead>
+      {(ctx.scholarships||[]).length>0&&<div className="tw" style={{marginTop:10}}><table><thead><tr><th>Student</th><th>Class</th><th>Type</th><th>Date</th></tr></thead>
       <tbody>{(ctx.scholarships||[]).map(s=><tr key={s.scid}><td>{s.student}</td><td>{s.class_name}</td><td><span className="badge bdo">{s.type}</span></td><td>{fmtD(s.date)}</td></tr>)}</tbody></table></div>}
     </div>
-    <div className="card" style={{borderLeft:"4px solid var(--accent)"}}><div className="ct">🛡️ Audit Trail</div>
+
+    {/* Audit log */}
+    <div className="card" style={{borderTop:"3px solid var(--navy)"}}><div className="sect">🛡 Audit Trail</div>
       <div className="tw" style={{maxHeight:280,overflowY:"auto"}}><table><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Details</th></tr></thead>
       <tbody>{(ctx.auditLog||[]).slice(0,60).map(a=><tr key={a.aid}>
         <td className="mn">{new Date(a.time).toLocaleString()}</td>
-        <td><span className="badge bdb">{a.user}</span></td>
-        <td>{a.action}</td>
-        <td style={{maxWidth:260,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.details}</td>
+        <td><span className="badge bdn">{a.user}</span></td>
+        <td style={{fontWeight:600}}>{a.action}</td>
+        <td style={{maxWidth:260,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"var(--muted)",fontSize:".76rem"}}>{a.details}</td>
       </tr>)}</tbody></table></div>
     </div>
   </div>;
 }
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 // RENDER
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 ReactDOM.createRoot(document.getElementById("root")).render(<Prov><App/></Prov>);
 </script>
 </body>
