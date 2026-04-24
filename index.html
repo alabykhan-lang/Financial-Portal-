@@ -297,8 +297,8 @@ function Prov({children}){
     try{await sbU("ssfp_settings",[{key:"main",value:val}])}catch(e){console.warn("Settings DB sync failed (localStorage already saved):",e)}
   },[]);
   const saveCashEntry=useCallback(async(e)=>{
-    const row={entry_id:e.id,date:e.date,class_name:e.cls,student:e.student,category:e.category,amount:e.amount,mode:e.mode,entry_type:e.type,timestamp:e.timestamp,section:e.section,is_prior_term:e.isPriorTerm||false,reversed:false,reversal_of:null,note:e.note||null,receipt_id:e.id};
-    try{await sbP("ssfp_cashbook",row)}catch(err){console.error(err)}
+    const row={entry_id:e.id,date:e.date,class_name:e.cls||null,student:e.student||null,category:e.category||null,amount:e.amount,mode:e.mode||"Cash",entry_type:e.type,timestamp:e.timestamp,section:e.section,is_prior_term:e.isPriorTerm||false,reversed:false,reversal_of:e.reversalOf||null,note:e.note||e.description||null,receipt_id:e.id};
+    try{await sbP("ssfp_cashbook",row)}catch(err){console.error("Cash entry DB save failed:",err)}
     setCashBook(p=>{const n=[...p,row];LS.s("ssfp_cashbook",n);return n});
   },[]);
   const markReversed=useCallback(async(id)=>{
@@ -637,27 +637,40 @@ function CashBook({sec}){
   const classes=sec==="A"?SEC_A:SEC_B;
   const entries=useMemo(()=>(ctx.cashBook||[]).filter(e=>e.section===sec).sort((a,b)=>(a.date||"").localeCompare(b.date||"")||a.timestamp-b.timestamp),[ctx.cashBook,sec]);
   const activeCats=(ctx.categories||DEF_CATS).filter(c=>ctx.termCfg?.activeCats?.[c]!==false);
-  const[date,setDate]=useState(today());const[cl,setCl]=useState("");const[stu,setStu]=useState("");const[cat,setCat]=useState("");const[amt,setAmt]=useState("");const[mode,setMode]=useState("Cash");const[type,setType]=useState("Income");const[fd,setFd]=useState(today());const[showR,setShowR]=useState(false);const[rId,setRId]=useState("");const[msg,setMsg]=useState(null);const[saving,setSaving]=useState(false);
+  const[date,setDate]=useState(today());const[cl,setCl]=useState("");const[stu,setStu]=useState("");const[cat,setCat]=useState("");const[amt,setAmt]=useState("");const[mode,setMode]=useState("Cash");const[type,setType]=useState("Income");const[desc,setDesc]=useState("");const[fd,setFd]=useState(today());const[showR,setShowR]=useState(false);const[rId,setRId]=useState("");const[msg,setMsg]=useState(null);const[saving,setSaving]=useState(false);
   const stuList=useMemo(()=>(cl&&ctx.students[cl])?[...ctx.students[cl]].sort((a,b)=>a.name.localeCompare(b.name)).map(s=>s.name):[],[cl,ctx.students]);
   const{op,clBal,dayE}=useMemo(()=>{let o=0;for(const e of entries)if(e.date<fd)o+=e.entry_type==="Income"?e.amount:-e.amount;const de=entries.filter(e=>e.date===fd);let c=o;for(const e of de)c+=e.entry_type==="Income"?e.amount:-e.amount;return{op:o,clBal:c,dayE:de}},[entries,fd]);
   const liq=useMemo(()=>(ctx.cashBook||[]).filter(e=>e.section===sec).reduce((s,e)=>s+(e.entry_type==="Income"?e.amount:-e.amount),0),[ctx.cashBook,sec]);
+  const isExpense=type==="Expense";
   async function submit(){
-    if(!cl||!stu||!cat||!amt||isNaN(parseFloat(amt))){setMsg({t:1,m:"Fill all required fields."});return}
+    if(isExpense){
+      if(!amt||isNaN(parseFloat(amt))){setMsg({t:1,m:"Enter the expense amount."});return}
+      if(!desc.trim()){setMsg({t:1,m:"Enter what the expense is for (e.g. chalk, fuel)."});return}
+    }else{
+      if(!cl||!stu||!cat||!amt||isNaN(parseFloat(amt))){setMsg({t:1,m:"Fill all required fields."});return}
+    }
     const a=Math.abs(parseFloat(parseFloat(amt).toFixed(2)));if(a<=0){setMsg({t:1,m:"Amount must be > zero."});return}
     setSaving(true);const eid=uid();
-    await ctx.saveCashEntry({id:eid,date,cls:cl,student:stu,category:cat,amount:a,mode,type,timestamp:Date.now(),section:sec,isPriorTerm:cat==="Outstanding/Backlog"});
-    if(type==="Income"){const up={...ctx.students};if(up[cl]){const idx=up[cl].findIndex(s=>s.name===stu);if(idx>=0){const cp=[...up[cl]];cp[idx]={...cp[idx],payments:[...cp[idx].payments,{id:eid,date,category:cat,amount:a,mode,isPriorTerm:cat==="Outstanding/Backlog",timestamp:Date.now(),receiptId:eid}]};up[cl]=cp;ctx.setStudents(up)}}}
-    if(!ctx.session?.isProp&&!ctx.session?.isSuper)ctx.addAudit("ENTRY",`${type} ${N(a)} — ${stu} [${cat}]`,ctx.session?.name);
-    if(a>500000)ctx.addNotif(`Large ${type.toLowerCase()} of ${N(a)} for ${stu} in ${cl}. Verify.`);
-    setAmt("");setCat("");setStu("");setSaving(false);setMsg({t:0,m:`✓ ${type} of ${N(a)} for ${stu} saved.`});setTimeout(()=>setMsg(null),4e3);
+    if(isExpense){
+      await ctx.saveCashEntry({id:eid,date,cls:null,student:null,category:"Expense",amount:a,mode,type:"Expense",timestamp:Date.now(),section:sec,isPriorTerm:false,description:desc.trim()});
+      if(!ctx.session?.isProp&&!ctx.session?.isSuper)ctx.addAudit("EXPENSE",`Expense ${N(a)} — ${desc.trim()}`,ctx.session?.name);
+      if(a>500000)ctx.addNotif(`Large expense of ${N(a)}: "${desc.trim()}". Verify.`);
+      setAmt("");setDesc("");setSaving(false);setMsg({t:0,m:`✓ Expense of ${N(a)} (${desc}) recorded.`});setTimeout(()=>setMsg(null),4e3);
+    }else{
+      await ctx.saveCashEntry({id:eid,date,cls:cl,student:stu,category:cat,amount:a,mode,type:"Income",timestamp:Date.now(),section:sec,isPriorTerm:cat==="Outstanding/Backlog"});
+      const up={...ctx.students};if(up[cl]){const idx=up[cl].findIndex(s=>s.name===stu);if(idx>=0){const cp=[...up[cl]];cp[idx]={...cp[idx],payments:[...cp[idx].payments,{id:eid,date,category:cat,amount:a,mode,isPriorTerm:cat==="Outstanding/Backlog",timestamp:Date.now(),receiptId:eid}]};up[cl]=cp;ctx.setStudents(up)}}
+      if(!ctx.session?.isProp&&!ctx.session?.isSuper)ctx.addAudit("ENTRY",`Income ${N(a)} — ${stu} [${cat}]`,ctx.session?.name);
+      if(a>500000)ctx.addNotif(`Large income of ${N(a)} for ${stu} in ${cl}. Verify.`);
+      setAmt("");setCat("");setStu("");setSaving(false);setMsg({t:0,m:`✓ Income of ${N(a)} for ${stu} saved.`});setTimeout(()=>setMsg(null),4e3);
+    }
   }
   async function doRev(){
     const orig=(ctx.cashBook||[]).find(e=>e.entry_id===rId);if(!orig){setMsg({t:1,m:"Entry ID not found."});return}if(orig.reversed){setMsg({t:1,m:"Entry already reversed."});return}
     const eid=uid();await ctx.markReversed(orig.entry_id);
     await ctx.saveCashEntry({id:eid,date:today(),cls:orig.class_name,student:orig.student,category:orig.category,amount:orig.amount,mode:orig.mode,type:orig.entry_type==="Income"?"Expense":"Income",timestamp:Date.now(),section:orig.section,isPriorTerm:orig.is_prior_term,note:"Reversal of "+orig.entry_id});
     if(orig.entry_type==="Income"){const up={...ctx.students};const c=orig.class_name;if(up[c]){const i=up[c].findIndex(s=>s.name===orig.student);if(i>=0){const cp=[...up[c]];cp[i]={...cp[i],payments:[...cp[i].payments,{id:eid,date:today(),category:orig.category,amount:-orig.amount,mode:orig.mode,note:"Reversal",timestamp:Date.now()}]};up[c]=cp;ctx.setStudents(up)}}}
-    ctx.addAudit("REVERSAL",`Reversed ${orig.entry_id.slice(0,8)} (${N(orig.amount)} — ${orig.student})`,ctx.session?.name);
-    ctx.addNotif(`Reversal posted: ${N(orig.amount)} for ${orig.student}.`);
+    ctx.addAudit("REVERSAL",`Reversed ${orig.entry_id.slice(0,8)} (${N(orig.amount)} — ${orig.student||orig.note||"expense"})`,ctx.session?.name);
+    ctx.addNotif(`Reversal posted: ${N(orig.amount)} for ${orig.student||orig.note||"expense entry"}.`);
     setRId("");setShowR(false);setMsg({t:0,m:"Reversal posted."});setTimeout(()=>setMsg(null),3e3);
   }
   return<div className="fu">
@@ -674,14 +687,21 @@ function CashBook({sec}){
             {["Income","Expense"].map(t=><button key={t} onClick={()=>setType(t)} style={{flex:1,padding:"8px",border:"none",cursor:"pointer",fontWeight:type===t?700:400,fontSize:".8rem",background:type===t?(t==="Income"?"var(--green)":"var(--red)"):"#fff",color:type===t?"#fff":"var(--muted)",transition:"all .15s"}}>{t}</button>)}
           </div>
         </div>
-        <div className="fl"><span className="flb">Class</span><select value={cl} onChange={e=>{setCl(e.target.value);setStu("")}} className="sel"><option value="">— Select class —</option>{classes.map(c=><option key={c}>{c}</option>)}</select></div>
-        <div className="fl"><span className="flb">Student</span><select value={stu} onChange={e=>setStu(e.target.value)} className="sel" disabled={!cl}><option value="">— Select student —</option>{stuList.map(n=><option key={n}>{n}</option>)}</select>{cl&&stuList.length===0&&<span className="hint">No students — sync or import via Class Portal</span>}</div>
-        <div className="fl"><span className="flb">Fee Category</span><select value={cat} onChange={e=>setCat(e.target.value)} className="sel"><option value="">— Select category —</option>{activeCats.map(c=><option key={c}>{c}</option>)}</select></div>
-        <div className="fl"><span className="flb">Amount (₦)</span><input type="number" min="0" step=".01" value={amt} onChange={e=>setAmt(e.target.value)} className="inpm" placeholder="0.00"/></div>
-        <div className="fl"><span className="flb">Payment Mode</span><select value={mode} onChange={e=>setMode(e.target.value)} className="sel">{PAY_MODES.map(m=><option key={m}>{m}</option>)}</select></div>
+        {isExpense?<>
+          <div className="fl" style={{gridColumn:"span 2"}}><span className="flb">What is this expense for?</span><input value={desc} onChange={e=>setDesc(e.target.value)} className="inp" placeholder="e.g. chalk, fuel, stationery, drawings (proprietor withdrawal)…"/></div>
+          <div className="fl"><span className="flb">Amount (₦)</span><input type="number" min="0" step=".01" value={amt} onChange={e=>setAmt(e.target.value)} className="inpm" placeholder="0.00"/></div>
+          <div className="fl"><span className="flb">Payment Mode</span><select value={mode} onChange={e=>setMode(e.target.value)} className="sel">{PAY_MODES.map(m=><option key={m}>{m}</option>)}</select></div>
+        </>:<>
+          <div className="fl"><span className="flb">Class</span><select value={cl} onChange={e=>{setCl(e.target.value);setStu("")}} className="sel"><option value="">— Select class —</option>{classes.map(c=><option key={c}>{c}</option>)}</select></div>
+          <div className="fl"><span className="flb">Student</span><select value={stu} onChange={e=>setStu(e.target.value)} className="sel" disabled={!cl}><option value="">— Select student —</option>{stuList.map(n=><option key={n}>{n}</option>)}</select>{cl&&stuList.length===0&&<span className="hint">No students — sync or import via Class Portal</span>}</div>
+          <div className="fl"><span className="flb">Fee Category</span><select value={cat} onChange={e=>setCat(e.target.value)} className="sel"><option value="">— Select category —</option>{activeCats.map(c=><option key={c}>{c}</option>)}</select></div>
+          <div className="fl"><span className="flb">Amount (₦)</span><input type="number" min="0" step=".01" value={amt} onChange={e=>setAmt(e.target.value)} className="inpm" placeholder="0.00"/></div>
+          <div className="fl"><span className="flb">Payment Mode</span><select value={mode} onChange={e=>setMode(e.target.value)} className="sel">{PAY_MODES.map(m=><option key={m}>{m}</option>)}</select></div>
+        </>}
       </div>
+      {isExpense&&<div className="msg-warn" style={{marginTop:10,marginBottom:0}}>⚠ Expenses are recorded against the school account — no student or class required. Use clear descriptions for audit purposes.</div>}
       <div className="fr" style={{marginTop:14}}>
-        <button className="btn btn-gold" onClick={submit} disabled={saving}>{saving?"Saving…":"SUBMIT ENTRY"}</button>
+        <button className="btn btn-gold" onClick={submit} disabled={saving}>{saving?"Saving…":isExpense?"RECORD EXPENSE":"SUBMIT INCOME"}</button>
         <button className="btn btn-ghost btn-sm" onClick={()=>setShowR(!showR)}>{showR?"Cancel":"⤺ Post Reversal"}</button>
       </div>
       {showR&&<div style={{marginTop:12,padding:14,background:"var(--redbg)",border:"1px dashed var(--red)",borderRadius:8}}>
@@ -698,15 +718,17 @@ function CashBook({sec}){
             <div style={{fontFamily:"var(--ff-m)",fontSize:".95rem",fontWeight:700,marginTop:5,color:i===1?"var(--gold)":typeof v==="number"?(v<0?"var(--red)":c):"var(--navy)"}}>{typeof v==="number"?N(v):v}</div>
           </div>)}
       </div>
-      <div className="tw"><table><thead><tr><th>ID</th><th>Time</th><th>Student</th><th>Class</th><th>Category</th><th>Mode</th><th className="r">Income</th><th className="r">Expense</th><th className="r">Balance</th><th>Note</th></tr></thead>
+      <div className="tw"><table><thead><tr><th>ID</th><th>Time</th><th>Student / Description</th><th>Class</th><th>Category</th><th>Mode</th><th className="r">Income</th><th className="r">Expense</th><th className="r">Balance</th><th>Note</th></tr></thead>
       <tbody>
         {dayE.length===0&&<tr><td colSpan={10} className="er">No entries for {fmtD(fd)}</td></tr>}
         {dayE.map((e,i)=>{let rb=op;for(let j=0;j<=i;j++)rb+=dayE[j].entry_type==="Income"?dayE[j].amount:-dayE[j].amount;
+          const isExp=e.entry_type==="Expense"&&!e.reversal_of;
           return<tr key={e.entry_id} className={e.reversed?"rvd":e.reversal_of?"rvr":""}>
             <td className="mn">{e.entry_id.slice(0,8)}</td>
             <td>{new Date(e.timestamp).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</td>
-            <td style={{fontWeight:500}}>{e.student}</td><td>{e.class_name}</td>
-            <td>{e.category}{e.is_prior_term?" ⏮":""}</td>
+            <td style={{fontWeight:500}}>{isExp?<span style={{fontStyle:"italic",color:"var(--red)"}}>{e.note||e.student||"Expense"}</span>:e.student}</td>
+            <td>{isExp?<span className="badge bdr" style={{fontSize:".6rem"}}>EXPENSE</span>:e.class_name}</td>
+            <td>{isExp?"":e.category}{e.is_prior_term?" ⏮":""}</td>
             <td><span className="badge" style={{background:"var(--bg2)",color:"var(--slate)",border:"1px solid var(--border)"}}>{e.mode}</span></td>
             <td className="my">{e.entry_type==="Income"?N(e.amount):""}</td>
             <td className="mr">{e.entry_type==="Expense"?N(e.amount):""}</td>
@@ -756,12 +778,12 @@ function Ledgers({sec}){
   const tuitionPays=pays.filter(p=>p.category==="Tuition Fee"&&p.amount>0);
   const posPays=pays.filter(p=>p.amount>0);const total=posPays.reduce((s,p)=>s+p.amount,0);const tuitionTotal=tuitionPays.reduce((s,p)=>s+p.amount,0);
   const isPropUser=ctx.session?.isProp||ctx.session?.isSuper;
+  const sp=ctx.schoolProfile||{};const bSig=sec==="A"?sp.bursarASignature:sp.bursarBSignature;
   const adminSig=sp.adminSignature||"";
   const catP={};pays.forEach(p=>{catP[p.category]=(catP[p.category]||0)+p.amount});
   const cats=(ctx.categories||DEF_CATS).filter(c=>ctx.termCfg?.activeCats?.[c]!==false&&c!=="Outstanding/Backlog");
   const classTargets=(ctx.feeTargets||{})[sc]||{};
   const allPaid=cats.every(c=>{const t=classTargets[c]||0;return t===0||(catP[c]||0)>=t});
-  const sp=ctx.schoolProfile||{};const bSig=sec==="A"?sp.bursarASignature:sp.bursarBSignature;
   function makeReceiptId(){const d=new Date();const yr=d.getFullYear().toString().slice(-2);const mo=String(d.getMonth()+1).padStart(2,"0");const dy=String(d.getDate()).padStart(2,"0");const rnd=Math.floor(Math.random()*10000).toString().padStart(4,"0");return`WTS/${yr}${mo}${dy}/${rnd}`}
   function printTuition(){setViewRcp({type:"tuition",student:stu,cls:sc,payments:tuitionPays,total:tuitionTotal,receiptId:makeReceiptId(),issuedBy:ctx.session?.name,issuedAt:new Date().toISOString(),isPropPay:isPropUser});setTimeout(()=>window.print(),300)}
   function printAll(){setViewRcp({type:"all",student:stu,cls:sc,payments:posPays,total,receiptId:makeReceiptId(),issuedBy:ctx.session?.name,issuedAt:new Date().toISOString(),isPropPay:isPropUser});setTimeout(()=>window.print(),300)}
@@ -852,23 +874,43 @@ function Ledgers({sec}){
 // ANALYSIS
 function Analysis({sec}){
   const ctx=useApp();const classes=sec==="A"?SEC_A:SEC_B;const[sc,setSc]=useState(classes[0]);const cats=(ctx.categories||DEF_CATS).filter(c=>c!=="Outstanding/Backlog");const[cat,setCat]=useState(cats[0]||"");const list=ctx.students[sc]||[];const classTargets=(ctx.feeTargets||{})[sc]||{};const target=classTargets[cat]||0;
+  const sp=ctx.schoolProfile||{};
   const an=list.map(s=>{const p=(s.payments||[]).filter(x=>x.category===cat&&x.amount>0).reduce((sum,x)=>sum+x.amount,0);return{...s,paid:p,ok:target>0&&p>=target,owing:target>0?Math.max(0,target-p):0}});
   const totalR=an.reduce((s,a)=>s+a.paid,0);const pC=an.filter(a=>a.ok).length;const oC=an.filter(a=>!a.ok&&target>0).length;const tO=an.reduce((s,a)=>s+a.owing,0);
+  function doPrint(){window.print()}
   return<div className="fu">
-    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:14}}>Payment Analysis — Section {sec}</h2>
-    <div className="cp">{classes.map(c=><button key={c} className={"pill"+(sc===c?" a":"")} onClick={()=>setSc(c)}>{c} ({(ctx.students[c]||[]).length})</button>)}</div>
-    <div className="fr" style={{marginBottom:14}}>
+    <div className="fb" style={{marginBottom:14}}>
+      <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)"}}>Payment Analysis — Section {sec}</h2>
+      <button className="btn btn-gold btn-sm np" onClick={doPrint}>🖨 Print / Download</button>
+    </div>
+    <div className="cp">{classes.map(c=><button key={c} className={"pill np"+(sc===c?" a":"")} onClick={()=>setSc(c)}>{c} ({(ctx.students[c]||[]).length})</button>)}</div>
+    <div className="fr np" style={{marginBottom:14}}>
       <div className="fl" style={{flex:2}}><span className="flb">Category</span><select value={cat} onChange={e=>setCat(e.target.value)} className="sel">{cats.map(c=><option key={c}>{c}</option>)}</select></div>
       <div style={{fontFamily:"var(--ff-m)",fontSize:".76rem",padding:"8px 14px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,alignSelf:"flex-end",boxShadow:"var(--sh)",whiteSpace:"nowrap"}}>Target ({sc}): <strong style={{color:"var(--navy)"}}>{target>0?N(target):"Not set"}</strong></div>
     </div>
-    <div className="kg">
+    <div className="po" style={{marginBottom:16,paddingBottom:12,borderBottom:"2px solid #000"}}>
+      <div style={{fontFamily:"var(--ff-d)",fontSize:"1.2rem",fontWeight:700,textAlign:"center"}}>{sp.name||SCHOOL_NAME}</div>
+      <div style={{textAlign:"center",fontSize:".72rem",color:"#555",marginTop:2}}>{sp.address}{sp.phone?" · Tel: "+sp.phone:""}</div>
+      <div style={{textAlign:"center",fontSize:".82rem",fontWeight:600,marginTop:8}}>Payment Analysis Report — Section {sec}</div>
+      <div style={{textAlign:"center",fontSize:".72rem",color:"#555",marginTop:2}}>Class: {sc} &nbsp;|&nbsp; Category: {cat} &nbsp;|&nbsp; Term: {ctx.termCfg?.term} {ctx.termCfg?.year} &nbsp;|&nbsp; Printed: {new Date().toLocaleString()}</div>
+      <div style={{display:"flex",gap:20,justifyContent:"center",marginTop:10,fontFamily:"monospace",fontSize:".8rem"}}>
+        <span>Total Realized: <strong>{N(totalR)}</strong></span>
+        <span>Completed: <strong>{pC}/{list.length}</strong></span>
+        <span>Outstanding: <strong>{N(tO)}</strong></span>
+        {target>0&&<span>Target/Student: <strong>{N(target)}</strong></span>}
+      </div>
+    </div>
+    <div className="kg np">
       <div className="kpi" style={{"--accent":"var(--green)"}}><div className="kl">Total Realized</div><div className="kv" style={{color:"var(--green)"}}>{N(totalR)}</div><div className="ksub">{sc} — {cat}</div></div>
       <div className="kpi" style={{"--accent":"var(--blue)"}}><div className="kl">Completed</div><div className="kv">{pC} / {list.length}</div><div className="ksub">students</div></div>
       <div className="kpi" style={{"--accent":"var(--red)"}}><div className="kl">Outstanding</div><div className="kv" style={{color:"var(--red)"}}>{N(tO)}</div><div className="ksub">{oC} students owing</div></div>
     </div>
-    {pC>0&&<div className="card"><div className="sect" style={{color:"var(--green)"}}>✅ Completed ({pC})</div><div className="tw"><table><thead><tr><th>#</th><th>Student</th><th>Adm No</th><th className="r">Paid</th></tr></thead><tbody>{an.filter(a=>a.ok).map((a,i)=><tr key={a.name}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:600}}>{a.name}</td><td className="mn">{a.admno}</td><td className="my">{N(a.paid)}</td></tr>)}</tbody></table></div></div>}
-    {oC>0&&<div className="card"><div className="sect" style={{color:"var(--red)"}}>⚠️ Yet to Complete ({oC})</div><div className="tw"><table><thead><tr><th>#</th><th>Student</th><th>Adm No</th><th className="r">Paid</th><th className="r">Owing</th></tr></thead><tbody>{an.filter(a=>!a.ok&&target>0).map((a,i)=><tr key={a.name}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:600}}>{a.name}</td><td className="mn">{a.admno}</td><td className="my">{N(a.paid)}</td><td className="mr">{N(a.owing)}</td></tr>)}</tbody></table></div></div>}
-    {target===0&&<div className="msg-warn">⚠ No target set for "{cat}" in {sc}. Go to Settings → Fee Targets.</div>}
+    {pC>0&&<div className="card"><div className="fb" style={{marginBottom:8}}><div className="sect" style={{color:"var(--green)",marginBottom:0}}>✅ Completed ({pC})</div></div><div className="tw"><table><thead><tr><th>#</th><th>Student</th><th>Adm No</th><th className="r">Paid</th></tr></thead><tbody>{an.filter(a=>a.ok).map((a,i)=><tr key={a.name}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:600}}>{a.name}</td><td className="mn">{a.admno}</td><td className="my">{N(a.paid)}</td></tr>)}</tbody></table></div></div>}
+    {oC>0&&<div className="card"><div className="fb" style={{marginBottom:8}}><div className="sect" style={{color:"var(--red)",marginBottom:0}}>⚠️ Yet to Complete ({oC})</div></div><div className="tw"><table><thead><tr><th>#</th><th>Student</th><th>Adm No</th><th className="r">Paid</th><th className="r">Owing</th></tr></thead><tbody>{an.filter(a=>!a.ok&&target>0).map((a,i)=><tr key={a.name}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:600}}>{a.name}</td><td className="mn">{a.admno}</td><td className="my">{N(a.paid)}</td><td className="mr">{N(a.owing)}</td></tr>)}</tbody></table></div></div>}
+    {target===0&&<div className="msg-warn np">⚠ No target set for "{cat}" in {sc}. Go to Settings → Fee Targets.</div>}
+    <div className="po" style={{marginTop:24,paddingTop:16,borderTop:"1px dashed #ccc",fontSize:".65rem",color:"#888",textAlign:"center"}}>
+      Report generated by: {ctx.session?.name} · {new Date().toLocaleString()}
+    </div>
   </div>;
 }
 // LESSONS
