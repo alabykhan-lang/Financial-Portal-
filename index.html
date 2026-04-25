@@ -305,21 +305,31 @@ function Prov({children}){
     }
   })()},[]);
   const saveAllSettings=useCallback(async(cats,ft,tc,lc,sp,ai)=>{
-    // 1. Always write to localStorage immediately
+    // 1. Always write to localStorage immediately (local cache)
     LS.s("ssfp_cats",cats);LS.s("ssfp_targets",ft);LS.s("ssfp_term",tc);LS.s("ssfp_lesson",lc);LS.s("ssfp_profile",sp);LS.s("ssfp_ai",ai);
-    // 2. Write to DB (upsert — creates row if missing, updates if exists)
+    // 2. Write to DB as single source of truth
     const val={categories:cats,feeTargets:ft,termCfg:tc,lessonCur:lc,schoolProfile:sp,aiConfig:ai};
     try{
-      await sbU("ssfp_settings",[{key:"main",value:val}]);
+      const res=await sbU("ssfp_settings",[{key:"main",value:val}]);
+      setDbWriteErr(null);
+      return{ok:true};
     }catch(e){
-      console.warn("Settings DB sync failed (localStorage already saved):",e);
-      // Retry once after short delay
-      try{await new Promise(r=>setTimeout(r,1000));await sbU("ssfp_settings",[{key:"main",value:val}])}catch{}
+      const msg=e?.message||String(e);
+      console.error("Settings DB save FAILED:",msg);
+      setDbWriteErr("⚠ Settings DB write failed: "+msg);
+      return{ok:false,error:msg};
     }
   },[]);
+  const[dbWriteErr,setDbWriteErr]=useState(null);
   const saveCashEntry=useCallback(async(e)=>{
     const row={entry_id:e.id,date:e.date,class_name:e.cls||null,student:e.student||null,category:e.category||null,amount:e.amount,mode:e.mode||"Cash",entry_type:e.type,timestamp:e.timestamp,section:e.section,is_prior_term:e.isPriorTerm||false,reversed:false,reversal_of:e.reversalOf||null,note:e.note||e.description||null,receipt_id:e.id};
-    try{await sbP("ssfp_cashbook",row)}catch(err){console.error("Cash entry DB save failed:",err)}
+    // Use UPSERT (not INSERT) so duplicate entry_ids never cause silent failures
+    try{await sbU("ssfp_cashbook",[row]);setDbWriteErr(null)}
+    catch(err){
+      const msg=err?.message||String(err);
+      console.error("Cash entry DB save failed:",msg);
+      setDbWriteErr("⚠ DB write failed: "+msg+". Entry saved locally only — will be lost on refresh. Check console.");
+    }
     setCashBook(p=>{const n=[...p,row];LS.s("ssfp_cashbook",n);return n});
   },[]);
   const markReversed=useCallback(async(id)=>{
@@ -535,6 +545,11 @@ function Portal(){
         </div>
       </header>
       {showN&&<NPanel close={()=>setShowN(false)}/>}
+      {ctx.dbWriteErr&&<div style={{background:"#dc2626",color:"#fff",padding:"10px 18px",fontSize:".78rem",fontWeight:600,display:"flex",alignItems:"center",gap:10,position:"sticky",top:56,zIndex:200,boxShadow:"0 2px 8px rgba(0,0,0,.3)"}}>
+        <span style={{fontSize:"1.1rem"}}>⚠</span>
+        <span style={{flex:1}}>{ctx.dbWriteErr}</span>
+        <button onClick={()=>ctx.setDbWriteErr(null)} style={{background:"rgba(255,255,255,.2)",border:"none",color:"#fff",borderRadius:4,padding:"3px 10px",cursor:"pointer",fontSize:".76rem"}}>✕</button>
+      </div>}
       <main className="pc">
         {tab==="home"&&<HomePage sec={effSec} setTab={setTab}/>}
         {tab==="cashbook"&&<CashBook sec={effSec}/>}
@@ -1187,6 +1202,8 @@ function UserMgmt(){
   </div>;
 }
 // SETTINGS
+const SB_URL="https://wuftzyeajmsxdrbwaawl.supabase.co";
+const SK_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnR6eWVham1zeGRyYndhYXdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NjczNTgsImV4cCI6MjA4OTQ0MzM1OH0.QUeDRP1IpHCjvecqAOEZAqmMalEFlCLXylZP5D5iLog";
 function Settings(){
   const ctx=useApp();const isProp=ctx.session?.isProp||ctx.session?.isSuper||false;
   const[nc,setNc]=useState("");const[msg,setMsg]=useState(null);const[saving,setSaving]=useState(false);
@@ -1203,9 +1220,16 @@ function Settings(){
   useEffect(()=>{setLocalAI(ctx.aiConfig||{})},[ctx.aiConfig]);
   function setTgt(grp,c,v){const group=FEE_GROUPS.find(g=>g.label===grp);const clsList=group?group.classes:[];setLocalTargets(prev=>{const n={...prev};clsList.forEach(k=>{n[k]={...(n[k]||{}),[c]:parseFloat(v)||0}});return n;});}
   async function saveAll(){
-    setSaving(true);ctx.setFeeTargets(localTargets);ctx.setSchoolProfile(localProfile);ctx.setAiConfig(localAI);
-    await ctx.saveAllSettings(ctx.categories,localTargets,ctx.termCfg,ctx.lessonCur,localProfile,localAI);
-    setSaving(false);setMsg({t:0,m:"✓ All settings saved successfully."});setTimeout(()=>setMsg(null),4e3);
+    setSaving(true);setMsg(null);
+    ctx.setFeeTargets(localTargets);ctx.setSchoolProfile(localProfile);ctx.setAiConfig(localAI);
+    const result=await ctx.saveAllSettings(ctx.categories,localTargets,ctx.termCfg,ctx.lessonCur,localProfile,localAI);
+    setSaving(false);
+    if(result?.ok){
+      setMsg({t:0,m:"✓ Settings saved to database successfully."});
+    } else {
+      setMsg({t:1,m:"✗ DB save failed: "+(result?.error||"Unknown error")+". Settings saved locally only — will be lost on refresh. Check your Supabase connection."});
+    }
+    setTimeout(()=>setMsg(null),8e3);
   }
   function addCat(){if(!nc.trim()||(ctx.categories||[]).includes(nc.trim()))return;const u=[...(ctx.categories||[]),nc.trim()];ctx.setCategories(u);ctx.setTermCfg({...ctx.termCfg,activeCats:{...(ctx.termCfg?.activeCats||{}),[nc.trim()]:true}});setNc("");setMsg({t:0,m:`Category "${nc.trim()}" added. Click Save to persist.`});setTimeout(()=>setMsg(null),3e3)}
   function togCat(c){if(c==="Outstanding/Backlog"){setMsg({t:1,m:"Cannot disable Outstanding/Backlog."});setTimeout(()=>setMsg(null),2e3);return}ctx.setTermCfg({...ctx.termCfg,activeCats:{...(ctx.termCfg?.activeCats||{}),[c]:!(ctx.termCfg?.activeCats?.[c])}})}
@@ -1216,7 +1240,21 @@ function Settings(){
   return<div className="fu">
     <div className="fb" style={{marginBottom:16}}>
       <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)"}}>Settings</h2>
-      <button className="btn btn-save" onClick={saveAll} disabled={saving}>{saving?"Saving…":"💾 SAVE ALL SETTINGS"}</button>
+      <div style={{display:"flex",gap:8}}>
+        <button className="btn btn-ghost btn-sm" onClick={async()=>{
+          setMsg({t:2,m:"Testing DB connection…"});
+          try{
+            await ctx.saveAllSettings(ctx.categories,ctx.feeTargets,ctx.termCfg,ctx.lessonCur,ctx.schoolProfile,ctx.aiConfig);
+            const r=await fetch(`${SB_URL}/rest/v1/ssfp_settings?key=eq.main&limit=1`,{headers:{apikey:SK_KEY,"Authorization":"Bearer "+SK_KEY}});
+            if(!r.ok)throw new Error("Read failed: "+await r.text());
+            const d=await r.json();
+            if(d&&d[0]){setMsg({t:0,m:"✓ DB is working correctly. Settings row found and readable."});}
+            else{setMsg({t:1,m:"⚠ DB write/read succeeded but row not found. Table may be empty."});}
+          }catch(e){setMsg({t:1,m:"✗ DB test failed: "+e.message});}
+          setTimeout(()=>setMsg(null),8e3);
+        }}>🔌 Test DB</button>
+        <button className="btn btn-save" onClick={saveAll} disabled={saving}>{saving?"Saving…":"💾 SAVE ALL SETTINGS"}</button>
+      </div>
     </div>
     {msg&&<div className={msg.t?"msg-err":"msg-ok"}>{msg.m}</div>}
     <div className="card"><div className="sect">School Profile & Receipt Details</div>
