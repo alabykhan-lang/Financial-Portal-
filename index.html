@@ -472,7 +472,7 @@ function AuthGate(){
 }
 // PORTAL + SIDEBAR
 function Portal(){
-  const{session,setSession,notifs,setNotifs,dbOk,syncMsg,refreshStudents,addAudit,runAIAudit}=useApp();
+  const{session,setSession,notifs,setNotifs,dbOk,syncMsg,refreshStudents,addAudit,runAIAudit,dbWriteErr,setDbWriteErr}=useApp();
   const isAdmin=session?.role==="admin"||session?.role==="superadmin";
   const isProp=session?.isProp||false;const isSuper=session?.isSuper||false;const role=session?.role;
   const[tab,setTabRaw]=useState(()=>SS.g("ssfp_tab","home"));
@@ -545,10 +545,10 @@ function Portal(){
         </div>
       </header>
       {showN&&<NPanel close={()=>setShowN(false)}/>}
-      {ctx.dbWriteErr&&<div style={{background:"#dc2626",color:"#fff",padding:"10px 18px",fontSize:".78rem",fontWeight:600,display:"flex",alignItems:"center",gap:10,position:"sticky",top:56,zIndex:200,boxShadow:"0 2px 8px rgba(0,0,0,.3)"}}>
+      {dbWriteErr&&<div style={{background:"#dc2626",color:"#fff",padding:"10px 18px",fontSize:".78rem",fontWeight:600,display:"flex",alignItems:"center",gap:10,position:"sticky",top:56,zIndex:200,boxShadow:"0 2px 8px rgba(0,0,0,.3)"}}>
         <span style={{fontSize:"1.1rem"}}>⚠</span>
-        <span style={{flex:1}}>{ctx.dbWriteErr}</span>
-        <button onClick={()=>ctx.setDbWriteErr(null)} style={{background:"rgba(255,255,255,.2)",border:"none",color:"#fff",borderRadius:4,padding:"3px 10px",cursor:"pointer",fontSize:".76rem"}}>✕</button>
+        <span style={{flex:1}}>{dbWriteErr}</span>
+        <button onClick={()=>setDbWriteErr(null)} style={{background:"rgba(255,255,255,.2)",border:"none",color:"#fff",borderRadius:4,padding:"3px 10px",cursor:"pointer",fontSize:".76rem"}}>✕</button>
       </div>}
       <main className="pc">
         {tab==="home"&&<HomePage sec={effSec} setTab={setTab}/>}
