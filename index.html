@@ -1242,16 +1242,34 @@ function Settings(){
       <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)"}}>Settings</h2>
       <div style={{display:"flex",gap:8}}>
         <button className="btn btn-ghost btn-sm" onClick={async()=>{
-          setMsg({t:2,m:"Testing DB connection…"});
+          setMsg({t:2,m:"Testing DB…"});
+          const SURL="https://wuftzyeajmsxdrbwaawl.supabase.co";
+          const SKEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnR6eWVham1zeGRyYndhYXdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NjczNTgsImV4cCI6MjA4OTQ0MzM1OH0.QUeDRP1IpHCjvecqAOEZAqmMalEFlCLXylZP5D5iLog";
+          const HDR={"apikey":SKEY,"Authorization":"Bearer "+SKEY,"Content-Type":"application/json","Prefer":"return=representation,resolution=merge-duplicates"};
+          // Step 1: Raw INSERT test with tiny payload
           try{
-            await ctx.saveAllSettings(ctx.categories,ctx.feeTargets,ctx.termCfg,ctx.lessonCur,ctx.schoolProfile,ctx.aiConfig);
-            const r=await fetch(`${SB_URL}/rest/v1/ssfp_settings?key=eq.main&limit=1`,{headers:{apikey:SK_KEY,"Authorization":"Bearer "+SK_KEY}});
-            if(!r.ok)throw new Error("Read failed: "+await r.text());
-            const d=await r.json();
-            if(d&&d[0]){setMsg({t:0,m:"✓ DB is working correctly. Settings row found and readable."});}
-            else{setMsg({t:1,m:"⚠ DB write/read succeeded but row not found. Table may be empty."});}
-          }catch(e){setMsg({t:1,m:"✗ DB test failed: "+e.message});}
-          setTimeout(()=>setMsg(null),8e3);
+            const wr=await fetch(`${SURL}/rest/v1/ssfp_settings`,{method:"POST",headers:HDR,body:JSON.stringify([{key:"__test__",value:{t:Date.now()}}])});
+            const wStatus=wr.status;
+            const wBody=await wr.text();
+            if(!wr.ok){
+              setMsg({t:1,m:`✗ WRITE FAILED — HTTP ${wStatus}: ${wBody}`});
+              setTimeout(()=>setMsg(null),20e3);return;
+            }
+            // Step 2: Read it back
+            const rr=await fetch(`${SURL}/rest/v1/ssfp_settings?key=eq.__test__&limit=1`,{headers:{"apikey":SKEY,"Authorization":"Bearer "+SKEY}});
+            const rBody=await rr.text();
+            const rData=JSON.parse(rBody);
+            if(rData&&rData[0]){
+              // Clean up test row then write real settings
+              await fetch(`${SURL}/rest/v1/ssfp_settings?key=eq.__test__`,{method:"DELETE",headers:{"apikey":SKEY,"Authorization":"Bearer "+SKEY}});
+              const result=await ctx.saveAllSettings(ctx.categories,ctx.feeTargets,ctx.termCfg,ctx.lessonCur,ctx.schoolProfile,ctx.aiConfig);
+              if(result?.ok){setMsg({t:0,m:"✓ DB fully working! Write+Read+Settings all succeeded."});}
+              else{setMsg({t:1,m:"✗ Test row worked but settings write failed: "+(result?.error||"unknown")});}
+            } else {
+              setMsg({t:1,m:`✗ Write HTTP ${wStatus} OK but read returned empty. Body: ${rBody}`});
+            }
+          }catch(e){setMsg({t:1,m:"✗ Exception: "+e.message});}
+          setTimeout(()=>setMsg(null),20e3);
         }}>🔌 Test DB</button>
         <button className="btn btn-save" onClick={saveAll} disabled={saving}>{saving?"Saving…":"💾 SAVE ALL SETTINGS"}</button>
       </div>
