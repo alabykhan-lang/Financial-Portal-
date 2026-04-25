@@ -46,7 +46,7 @@ input,select,textarea,button{font-family:inherit;font-size:inherit}
 @keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 .fu{animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both}
 .shake{animation:shake .35s ease}
-@media print{body{background:#fff!important}.np{display:none!important}.po{display:block!important}}.po{display:none}
+@media print{body *{visibility:hidden!important}.print-receipt,.print-receipt *{visibility:visible!important}.print-receipt{position:fixed!important;top:0!important;left:0!important;width:100%!important;background:#fff!important;z-index:99999!important;padding:24px!important}.np{display:none!important}}.po{display:none}
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:20px;margin-bottom:16px;box-shadow:var(--sh)}
 .sect{font-family:var(--ff-d);font-size:1.1rem;color:var(--ink);margin-bottom:14px;font-weight:600}
 .gf2{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
@@ -272,18 +272,21 @@ function Prov({children}){
       const tryG=async(t,q)=>{try{return await sbG(t,q)}catch{return[]}};
       let cb=[],cfg=null,sal=[],ext=[],lw=[],dp=[],sch=[],al=[],nf=[];
       [cb,sal,ext,lw,dp,sch,al,nf]=await Promise.all([tryG("ssfp_cashbook","order=timestamp.asc"),tryG("ssfp_salaries","order=created_at.desc"),tryG("ssfp_ext_exams","order=created_at.desc"),tryG("ssfp_lesson_weeks","order=created_at.desc"),tryG("ssfp_direct_pay","order=created_at.desc"),tryG("ssfp_scholarships","order=created_at.desc"),tryG("ssfp_audit_log","order=time.desc&limit=300"),tryG("ssfp_notifications","order=time.desc&limit=100")]);
-      // Load settings: localStorage is primary (always current), DB is fallback/sync target
-      const lsCats=LS.g("ssfp_cats",null);const lsTargets=LS.g("ssfp_targets",null);const lsTerm=LS.g("ssfp_term",null);const lsLesson=LS.g("ssfp_lesson",null);const lsProfile=LS.g("ssfp_profile",null);const lsAI=LS.g("ssfp_ai",null);
-      const hasLocalSettings=lsCats||lsTargets||lsTerm||lsProfile;
-      if(!hasLocalSettings){
-        // No local data — try DB as source of truth
-        try{const r=await sbG("ssfp_settings","key=eq.main&limit=1");if(r&&r[0])cfg=r[0].value}catch{}
-        if(cfg){if(cfg.categories){setCategories(cfg.categories);LS.s("ssfp_cats",cfg.categories)}if(cfg.feeTargets){setFeeTargets(cfg.feeTargets);LS.s("ssfp_targets",cfg.feeTargets)}if(cfg.termCfg){setTermCfg(cfg.termCfg);LS.s("ssfp_term",cfg.termCfg)}if(cfg.lessonCur){setLessonCur(cfg.lessonCur);LS.s("ssfp_lesson",cfg.lessonCur)}if(cfg.schoolProfile){setSchoolProfile(p=>({...p,...cfg.schoolProfile}));LS.s("ssfp_profile",cfg.schoolProfile)}if(cfg.aiConfig){setAiConfig(a=>({...a,...cfg.aiConfig}));LS.s("ssfp_ai",cfg.aiConfig)}}
+      // DB is the SINGLE source of truth. Always read from DB. localStorage is only a write-through cache.
+      try{const r=await sbG("ssfp_settings","key=eq.main&limit=1");if(r&&r[0])cfg=r[0].value}catch(se){console.warn("Settings fetch:",se)}
+      if(cfg){
+        if(cfg.categories){setCategories(cfg.categories);LS.s("ssfp_cats",cfg.categories)}
+        if(cfg.feeTargets){setFeeTargets(cfg.feeTargets);LS.s("ssfp_targets",cfg.feeTargets)}
+        if(cfg.termCfg){setTermCfg(cfg.termCfg);LS.s("ssfp_term",cfg.termCfg)}
+        if(cfg.lessonCur){setLessonCur(cfg.lessonCur);LS.s("ssfp_lesson",cfg.lessonCur)}
+        if(cfg.schoolProfile){setSchoolProfile(p=>({...p,...cfg.schoolProfile}));LS.s("ssfp_profile",cfg.schoolProfile)}
+        if(cfg.aiConfig){setAiConfig(a=>({...a,...cfg.aiConfig}));LS.s("ssfp_ai",cfg.aiConfig)}
       } else {
-        // localStorage has data — use it (already loaded via useState initializers)
-        // Silently push to DB to keep in sync
-        const syncVal={categories:lsCats||DEF_CATS,feeTargets:lsTargets||{},termCfg:lsTerm||{term:"Term 1",year:"2025/2026"},lessonCur:lsLesson||{days:{},teacherRate:2500,teacherCount:10},schoolProfile:lsProfile||{},aiConfig:lsAI||{}};
-        try{await sbU("ssfp_settings",[{key:"main",value:syncVal}])}catch{}
+        const lsCats=LS.g("ssfp_cats",null);const lsTargets=LS.g("ssfp_targets",null);const lsTerm=LS.g("ssfp_term",null);const lsProfile=LS.g("ssfp_profile",null);const lsAI=LS.g("ssfp_ai",null);const lsLesson=LS.g("ssfp_lesson",null);
+        if(lsCats||lsTargets||lsTerm||lsProfile){
+          const sv={categories:lsCats||DEF_CATS,feeTargets:lsTargets||{},termCfg:lsTerm||{term:"Term 1",year:"2025/2026"},lessonCur:lsLesson||{days:{},teacherRate:2500,teacherCount:10},schoolProfile:lsProfile||{},aiConfig:lsAI||{}};
+          try{await sbU("ssfp_settings",[{key:"main",value:sv}])}catch{}
+        }
       }
       cb.filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{if(!mapped[e.class_name])return;const si=mapped[e.class_name].findIndex(s=>s.name===e.student);if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:e.amount,mode:e.mode,isPriorTerm:e.is_prior_term||false,timestamp:e.timestamp,receiptId:e.receipt_id||e.entry_id})});
       cb.filter(e=>e.reversal_of).forEach(e=>{if(!mapped[e.class_name])return;const si=mapped[e.class_name].findIndex(s=>s.name===e.student);if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:-Math.abs(e.amount),mode:e.mode,note:"Reversal",timestamp:e.timestamp})});
@@ -538,7 +541,7 @@ function Portal(){
         {tab==="classes"&&<ClassPortal sec={effSec}/>}
         {tab==="ledgers"&&<Ledgers sec={effSec}/>}
         {tab==="analysis"&&<Analysis sec={effSec}/>}
-        {tab==="lessons"&&<Lessons/>}
+        {tab==="lessons"&&<Lessons sec={effSec}/>}
         {tab==="dash"&&isAdmin&&<Dash/>}
         {tab==="acct"&&isAdmin&&<Acct/>}
         {tab==="sal"&&isAdmin&&<Sal/>}
@@ -849,13 +852,15 @@ function Ledgers({sec}){
       </div>
       <p className="hint" style={{marginTop:6}}>Ledger is read-only. Use category buttons above for per-category receipts.</p>
     </div>
-    {/* RECEIPT PANEL */}
-    {viewRcp&&<div className="po" style={{padding:20}}>
+    {/* RECEIPT PANEL - always visible when open, print-receipt class used for isolated printing */}
+    {viewRcp&&<div style={{marginTop:16,padding:"0 0 20px 0"}}>
       <div style={{display:"flex",gap:8,marginBottom:12,justifyContent:"flex-end"}} className="np">
         <button className="btn btn-gold btn-sm" onClick={()=>setPrinting(true)}>🖨 Print This Receipt</button>
-        <button className="btn btn-ghost btn-sm" onClick={()=>setViewRcp(null)}>✕ Close</button>
+        <button className="btn btn-ghost btn-sm" onClick={()=>setViewRcp(null)}>✕ Close Receipt</button>
       </div>
-      <ReceiptDoc viewRcp={viewRcp} sec={sec} sp={sp} bSig={bSig} adminSig={adminSig} ctx={ctx}/>
+      <div className="print-receipt">
+        <ReceiptDoc viewRcp={viewRcp} sec={sec} sp={sp} bSig={bSig} adminSig={adminSig} ctx={ctx}/>
+      </div>
     </div>}
     </div>:<p className="hint" style={{padding:20,textAlign:"center"}}>Select a class and student to view their ledger.</p>}
   </div>;
@@ -866,7 +871,7 @@ function ReceiptDoc({viewRcp,sec,sp,bSig,adminSig,ctx}){
   const titleMap={tuition:"OFFICIAL TUITION FEE RECEIPT",single:"PAYMENT RECEIPT",category:"CATEGORY PAYMENT RECEIPT",all:"CONSOLIDATED PAYMENT STATEMENT"};
   const receiptTitle=titleMap[viewRcp.type]||"PAYMENT RECEIPT";
   const catLabel=viewRcp.category?viewRcp.category:null;
-  return<div className="rwrap">
+  return<div className="rwrap" style={{maxWidth:560,margin:"0 auto",background:"#fff",padding:28,border:"2px solid #222"}}>
     {/* Header */}
     <div style={{textAlign:"center",borderBottom:"2.5px solid var(--navy)",paddingBottom:14,marginBottom:14}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginBottom:10}}>
@@ -994,12 +999,18 @@ function Analysis({sec}){
   </div>;
 }
 // LESSONS
-function Lessons(){
+function Lessons({sec}){
   const ctx=useApp();
   const role=ctx.session?.role;
   const isAdmin=role==="admin"||role==="superadmin";
   const sessionSection=ctx.session?.section; // "A", "B", or "both"
-  const[activeSec,setActiveSec]=useState(()=>sessionSection==="both"||isAdmin?"A":sessionSection);
+  // activeSec defaults to the sec prop (from the global header toggle) if admin, else locked to their section
+  const[activeSec,setActiveSec]=useState(()=>{
+    if(!isAdmin&&sessionSection!=="both")return sessionSection;
+    return sec||"A";
+  });
+  // Sync activeSec when the global sec prop changes (admin switches via header toggle)
+  useEffect(()=>{if(isAdmin||sessionSection==="both"){setActiveSec(sec||"A")}},[sec]);
   // Determine which classes to show based on active section
   const sectionClasses=activeSec==="A"?SEC_A:SEC_B;
   const lc=ctx.lessonCur||{days:{},teacherRate:2500,teacherCount:10};const days=lc.days||{};const rate=Number(lc.teacherRate)||0;const tc=Number(lc.teacherCount)||0;
