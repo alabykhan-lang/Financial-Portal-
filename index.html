@@ -272,11 +272,22 @@ function Prov({children}){
       const tryG=async(t,q)=>{try{return await sbG(t,q)}catch{return[]}};
       let cb=[],cfg=null,sal=[],ext=[],lw=[],dp=[],sch=[],al=[],nf=[];
       [cb,sal,ext,lw,dp,sch,al,nf]=await Promise.all([tryG("ssfp_cashbook","order=timestamp.asc"),tryG("ssfp_salaries","order=created_at.desc"),tryG("ssfp_ext_exams","order=created_at.desc"),tryG("ssfp_lesson_weeks","order=created_at.desc"),tryG("ssfp_direct_pay","order=created_at.desc"),tryG("ssfp_scholarships","order=created_at.desc"),tryG("ssfp_audit_log","order=time.desc&limit=300"),tryG("ssfp_notifications","order=time.desc&limit=100")]);
-      try{const r=await sbG("ssfp_settings","key=eq.main&limit=1");if(r&&r[0])cfg=r[0].value}catch{}
+      // Load settings: localStorage is primary (always current), DB is fallback/sync target
+      const lsCats=LS.g("ssfp_cats",null);const lsTargets=LS.g("ssfp_targets",null);const lsTerm=LS.g("ssfp_term",null);const lsLesson=LS.g("ssfp_lesson",null);const lsProfile=LS.g("ssfp_profile",null);const lsAI=LS.g("ssfp_ai",null);
+      const hasLocalSettings=lsCats||lsTargets||lsTerm||lsProfile;
+      if(!hasLocalSettings){
+        // No local data — try DB as source of truth
+        try{const r=await sbG("ssfp_settings","key=eq.main&limit=1");if(r&&r[0])cfg=r[0].value}catch{}
+        if(cfg){if(cfg.categories){setCategories(cfg.categories);LS.s("ssfp_cats",cfg.categories)}if(cfg.feeTargets){setFeeTargets(cfg.feeTargets);LS.s("ssfp_targets",cfg.feeTargets)}if(cfg.termCfg){setTermCfg(cfg.termCfg);LS.s("ssfp_term",cfg.termCfg)}if(cfg.lessonCur){setLessonCur(cfg.lessonCur);LS.s("ssfp_lesson",cfg.lessonCur)}if(cfg.schoolProfile){setSchoolProfile(p=>({...p,...cfg.schoolProfile}));LS.s("ssfp_profile",cfg.schoolProfile)}if(cfg.aiConfig){setAiConfig(a=>({...a,...cfg.aiConfig}));LS.s("ssfp_ai",cfg.aiConfig)}}
+      } else {
+        // localStorage has data — use it (already loaded via useState initializers)
+        // Silently push to DB to keep in sync
+        const syncVal={categories:lsCats||DEF_CATS,feeTargets:lsTargets||{},termCfg:lsTerm||{term:"Term 1",year:"2025/2026"},lessonCur:lsLesson||{days:{},teacherRate:2500,teacherCount:10},schoolProfile:lsProfile||{},aiConfig:lsAI||{}};
+        try{await sbU("ssfp_settings",[{key:"main",value:syncVal}])}catch{}
+      }
       cb.filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{if(!mapped[e.class_name])return;const si=mapped[e.class_name].findIndex(s=>s.name===e.student);if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:e.amount,mode:e.mode,isPriorTerm:e.is_prior_term||false,timestamp:e.timestamp,receiptId:e.receipt_id||e.entry_id})});
       cb.filter(e=>e.reversal_of).forEach(e=>{if(!mapped[e.class_name])return;const si=mapped[e.class_name].findIndex(s=>s.name===e.student);if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:-Math.abs(e.amount),mode:e.mode,note:"Reversal",timestamp:e.timestamp})});
       setStudents(mapped);setCashBook(cb);
-      if(cfg){if(cfg.categories)setCategories(cfg.categories);if(cfg.feeTargets)setFeeTargets(cfg.feeTargets);if(cfg.termCfg)setTermCfg(cfg.termCfg);if(cfg.lessonCur)setLessonCur(cfg.lessonCur);if(cfg.schoolProfile)setSchoolProfile(p=>({...p,...cfg.schoolProfile,adminSignature:cfg.schoolProfile.adminSignature||p.adminSignature||""}));if(cfg.aiConfig)setAiConfig(a=>({...a,...cfg.aiConfig}))}
       setSalaries(sal);setExtExams(ext);setLessonWeeks(lw);setDirectPay(dp);setScholarships(sch);setAuditLog(al);setNotifs(nf);
       setDbOk(true);setSyncMsg(`Connected — ${raw.length} students`);
     }catch(e){
@@ -291,10 +302,17 @@ function Prov({children}){
     }
   })()},[]);
   const saveAllSettings=useCallback(async(cats,ft,tc,lc,sp,ai)=>{
-    // Always persist to localStorage first — guarantees data survives regardless of DB status
+    // 1. Always write to localStorage immediately
     LS.s("ssfp_cats",cats);LS.s("ssfp_targets",ft);LS.s("ssfp_term",tc);LS.s("ssfp_lesson",lc);LS.s("ssfp_profile",sp);LS.s("ssfp_ai",ai);
+    // 2. Write to DB (upsert — creates row if missing, updates if exists)
     const val={categories:cats,feeTargets:ft,termCfg:tc,lessonCur:lc,schoolProfile:sp,aiConfig:ai};
-    try{await sbU("ssfp_settings",[{key:"main",value:val}])}catch(e){console.warn("Settings DB sync failed (localStorage already saved):",e)}
+    try{
+      await sbU("ssfp_settings",[{key:"main",value:val}]);
+    }catch(e){
+      console.warn("Settings DB sync failed (localStorage already saved):",e);
+      // Retry once after short delay
+      try{await new Promise(r=>setTimeout(r,1000));await sbU("ssfp_settings",[{key:"main",value:val}])}catch{}
+    }
   },[]);
   const saveCashEntry=useCallback(async(e)=>{
     const row={entry_id:e.id,date:e.date,class_name:e.cls||null,student:e.student||null,category:e.category||null,amount:e.amount,mode:e.mode||"Cash",entry_type:e.type,timestamp:e.timestamp,section:e.section,is_prior_term:e.isPriorTerm||false,reversed:false,reversal_of:e.reversalOf||null,note:e.note||e.description||null,receipt_id:e.id};
@@ -774,7 +792,7 @@ function ClassPortal({sec}){
 }
 // STUDENT LEDGERS
 function Ledgers({sec}){
-  const ctx=useApp();const classes=sec==="A"?SEC_A:SEC_B;const[sc,setSc]=useState(classes[0]);const[ss,setSs]=useState("");const[viewRcp,setViewRcp]=useState(null);const list=ctx.students[sc]||[];const stu=list.find(s=>s.name===ss);const pays=(stu?.payments||[]);
+  const ctx=useApp();const classes=sec==="A"?SEC_A:SEC_B;const[sc,setSc]=useState(classes[0]);const[ss,setSs]=useState("");const[viewRcp,setViewRcp]=useState(null);const[printing,setPrinting]=useState(false);const list=ctx.students[sc]||[];const stu=list.find(s=>s.name===ss);const pays=(stu?.payments||[]);
   const tuitionPays=pays.filter(p=>p.category==="Tuition Fee"&&p.amount>0);
   const posPays=pays.filter(p=>p.amount>0);const total=posPays.reduce((s,p)=>s+p.amount,0);const tuitionTotal=tuitionPays.reduce((s,p)=>s+p.amount,0);
   const isPropUser=ctx.session?.isProp||ctx.session?.isSuper;
@@ -784,15 +802,18 @@ function Ledgers({sec}){
   const cats=(ctx.categories||DEF_CATS).filter(c=>ctx.termCfg?.activeCats?.[c]!==false&&c!=="Outstanding/Backlog");
   const classTargets=(ctx.feeTargets||{})[sc]||{};
   const allPaid=cats.every(c=>{const t=classTargets[c]||0;return t===0||(catP[c]||0)>=t});
+  // Fix: use useEffect to print AFTER React renders the receipt
+  useEffect(()=>{if(viewRcp&&printing){const t=setTimeout(()=>{window.print();setPrinting(false)},350);return()=>clearTimeout(t)}},[viewRcp,printing]);
   function makeReceiptId(){const d=new Date();const yr=d.getFullYear().toString().slice(-2);const mo=String(d.getMonth()+1).padStart(2,"0");const dy=String(d.getDate()).padStart(2,"0");const rnd=Math.floor(Math.random()*10000).toString().padStart(4,"0");return`WTS/${yr}${mo}${dy}/${rnd}`}
-  function printTuition(){setViewRcp({type:"tuition",student:stu,cls:sc,payments:tuitionPays,total:tuitionTotal,receiptId:makeReceiptId(),issuedBy:ctx.session?.name,issuedAt:new Date().toISOString(),isPropPay:isPropUser});setTimeout(()=>window.print(),300)}
-  function printAll(){setViewRcp({type:"all",student:stu,cls:sc,payments:posPays,total,receiptId:makeReceiptId(),issuedBy:ctx.session?.name,issuedAt:new Date().toISOString(),isPropPay:isPropUser});setTimeout(()=>window.print(),300)}
-  function printSinglePay(pay){const rId=pay.receiptId||pay.id||makeReceiptId();setViewRcp({type:"single",student:stu,cls:sc,payments:[pay],total:pay.amount,receiptId:rId,issuedBy:ctx.session?.name,issuedAt:new Date().toISOString(),isPropPay:isPropUser,category:pay.category});setTimeout(()=>window.print(),300)}
+  function openReceipt(type,payments,total,category){setViewRcp({type,student:stu,cls:sc,payments,total,receiptId:makeReceiptId(),issuedBy:ctx.session?.name,issuedAt:new Date().toISOString(),isPropPay:isPropUser,category:category||null});setPrinting(false);}
+  function printReceipt(type,payments,total,category){setViewRcp({type,student:stu,cls:sc,payments,total,receiptId:makeReceiptId(),issuedBy:ctx.session?.name,issuedAt:new Date().toISOString(),isPropPay:isPropUser,category:category||null});setPrinting(true);}
+  // Group positive payments by category for per-category receipts
+  const paysByCat={};posPays.forEach(p=>{if(!paysByCat[p.category])paysByCat[p.category]=[];paysByCat[p.category].push(p)});
   return<div className="fu">
     <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:14}}>Student Ledgers — Section {sec}</h2>
     <div className="fr" style={{marginBottom:14}}>
-      <select value={sc} onChange={e=>{setSc(e.target.value);setSs("")}} className="sel" style={{flex:1}}>{classes.map(c=><option key={c}>{c}</option>)}</select>
-      <select value={ss} onChange={e=>setSs(e.target.value)} className="sel" style={{flex:2}}><option value="">— Select Student —</option>{list.map(s=><option key={s.name}>{s.name}</option>)}</select>
+      <select value={sc} onChange={e=>{setSc(e.target.value);setSs("");setViewRcp(null)}} className="sel" style={{flex:1}}>{classes.map(c=><option key={c}>{c}</option>)}</select>
+      <select value={ss} onChange={e=>{setSs(e.target.value);setViewRcp(null)}} className="sel" style={{flex:2}}><option value="">— Select Student —</option>{list.map(s=><option key={s.name}>{s.name}</option>)}</select>
     </div>
     {ss&&stu?<div><div className="card">
       <div className="fb" style={{marginBottom:14}}>
@@ -802,73 +823,113 @@ function Ledgers({sec}){
         </div>
         <div style={{padding:"10px 16px",background:"var(--greenbg)",borderRadius:8,textAlign:"center",border:"1px solid var(--greenbdr)"}}><div style={{fontSize:".62rem",fontWeight:700,textTransform:"uppercase",color:"var(--green)"}}>Total Paid</div><div style={{fontFamily:"var(--ff-m)",fontWeight:800,color:"var(--green)",fontSize:"1rem",marginTop:3}}>{N(total)}</div></div>
       </div>
+      {/* Per-category fee status with individual print buttons */}
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:".66rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".5px",color:"var(--muted)",marginBottom:6}}>Fee Status by Category</div>
-        <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-          {cats.map(cat=>{const p=catP[cat]||0;const t=classTargets[cat]||0;const ok=t>0&&p>=t;const partial=p>0&&!ok;return<div key={cat} style={{padding:"4px 10px",borderRadius:5,fontSize:".7rem",fontFamily:"var(--ff-m)",background:ok?"var(--greenbg)":partial?"var(--amberbg)":"var(--bg2)",color:ok?"var(--green)":partial?"var(--amber)":"var(--muted)",border:"1px solid "+(ok?"var(--greenbdr)":partial?"#fbbf24":"var(--border)"),fontWeight:ok||partial?600:400}}>{cat}: {N(p)}{t>0?` / ${N(t)}`:""}{ok?" ✓":""}</div>;})}
-        </div>
+        <div style={{fontSize:".66rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".5px",color:"var(--muted)",marginBottom:8}}>Fee Status by Category</div>
+        {cats.map(cat=>{const p=catP[cat]||0;const t=classTargets[cat]||0;const ok=t>0&&p>=t;const partial=p>0&&!ok;const catPays=paysByCat[cat]||[];return<div key={cat} style={{display:"flex",alignItems:"center",padding:"7px 10px",borderRadius:6,marginBottom:4,background:ok?"var(--greenbg)":partial?"var(--amberbg)":"var(--bg2)",border:"1px solid "+(ok?"var(--greenbdr)":partial?"#fbbf24":"var(--border)")}}>
+          <div style={{flex:1}}>
+            <span style={{fontSize:".8rem",fontFamily:"var(--ff-m)",fontWeight:ok||partial?700:400,color:ok?"var(--green)":partial?"var(--amber)":"var(--muted)"}}>{cat}</span>
+            <span style={{fontSize:".74rem",color:"var(--muted)",marginLeft:8}}>{N(p)}{t>0?` / ${N(t)}`:""}{ok?" ✓":""}</span>
+          </div>
+          {catPays.length>0&&<div style={{display:"flex",gap:4}}>
+            <button className="btn btn-ghost btn-xs np" onClick={()=>openReceipt("category",catPays,catPays.reduce((s,x)=>s+x.amount,0),cat)} title="View receipt">👁</button>
+            <button className="btn btn-gold btn-xs np" onClick={()=>printReceipt("category",catPays,catPays.reduce((s,x)=>s+x.amount,0),cat)} title="Print receipt for this category">🖨</button>
+          </div>}
+        </div>;})}
       </div>
       <div className="tw"><table><thead><tr><th>Date</th><th>Time</th><th>Category</th><th className="r">Amount</th><th>Mode</th><th>Tag</th><th>Rcpt</th></tr></thead>
-      <tbody>{pays.length===0&&<tr><td colSpan={6} className="er">No payment records.</td></tr>}
-      {pays.map((p,i)=><tr key={p.id||i} className={p.amount<0?"rvr":""}><td>{fmtD(p.date)}</td><td className="mn">{p.timestamp?new Date(p.timestamp).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""}</td><td>{p.category}</td><td className={p.amount<0?"mr":"my"}>{N(p.amount)}</td><td><span className="badge" style={{background:"var(--bg2)",color:"var(--slate)",border:"1px solid var(--border)"}}>{p.mode||""}</span></td><td>{p.isPriorTerm?<span className="badge bdo">Prior</span>:p.note?<span className="badge bdr">Rev</span>:<span className="badge bdg">Current</span>}</td><td>{p.amount>0&&<button className="btn btn-ghost btn-xs" onClick={()=>printSinglePay(p)} title="Print receipt for this payment">🖨</button>}</td></tr>)}
+      <tbody>{pays.length===0&&<tr><td colSpan={7} className="er">No payment records.</td></tr>}
+      {pays.map((p,i)=><tr key={p.id||i} className={p.amount<0?"rvr":""}><td>{fmtD(p.date)}</td><td className="mn">{p.timestamp?new Date(p.timestamp).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""}</td><td>{p.category}</td><td className={p.amount<0?"mr":"my"}>{N(p.amount)}</td><td><span className="badge" style={{background:"var(--bg2)",color:"var(--slate)",border:"1px solid var(--border)"}}>{p.mode||""}</span></td><td>{p.isPriorTerm?<span className="badge bdo">Prior</span>:p.note?<span className="badge bdr">Rev</span>:<span className="badge bdg">Current</span>}</td><td>{p.amount>0&&<button className="btn btn-ghost btn-xs" onClick={()=>printReceipt("single",[p],p.amount,p.category)} title="Print receipt">🖨</button>}</td></tr>)}
       </tbody></table></div>
-      <div className="fr" style={{marginTop:12}}>
-        {tuitionPays.length>0&&<button className="btn btn-gold" onClick={printTuition}>🖨 Print Tuition Fee Receipt</button>}
-        {posPays.length>0&&<button className="btn btn-ghost btn-sm" onClick={printAll}>🖨 Print Full Statement</button>}
+      <div className="fr" style={{marginTop:12,flexWrap:"wrap"}}>
+        {tuitionPays.length>0&&<button className="btn btn-gold np" onClick={()=>openReceipt("tuition",tuitionPays,tuitionTotal,"Tuition Fee")}>👁 View Tuition Receipt</button>}
+        {tuitionPays.length>0&&<button className="btn btn-outline btn-sm np" onClick={()=>printReceipt("tuition",tuitionPays,tuitionTotal,"Tuition Fee")}>🖨 Print Tuition Receipt</button>}
+        {posPays.length>0&&<button className="btn btn-ghost btn-sm np" onClick={()=>openReceipt("all",posPays,total,null)}>👁 Full Statement</button>}
+        {posPays.length>0&&<button className="btn btn-ghost btn-sm np" onClick={()=>printReceipt("all",posPays,total,null)}>🖨 Print Full Statement</button>}
       </div>
-      <p className="hint" style={{marginTop:6}}>Ledger is read-only. Receipts show Tuition Fee payments only.</p>
-    </div></div>:<p className="hint" style={{padding:20,textAlign:"center"}}>Select a class and student to view their ledger.</p>}
+      <p className="hint" style={{marginTop:6}}>Ledger is read-only. Use category buttons above for per-category receipts.</p>
+    </div>
+    {/* RECEIPT PANEL */}
     {viewRcp&&<div className="po" style={{padding:20}}>
-      <div className="rwrap">
-        <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14,borderBottom:"2px solid var(--ink)",paddingBottom:14}}>
-          <img src={window.LOGO_200} alt="School Logo" style={{width:72,height:72,objectFit:"contain",flexShrink:0}}/>
-          <div style={{flex:1}}>
-            <div className="rsch" style={{textAlign:"left",fontSize:"1.1rem"}}>{sp.name||SCHOOL_NAME}</div>
-            {sp.motto&&<div style={{fontStyle:"italic",fontSize:".68rem",color:"var(--slate)",marginTop:2}}>{sp.motto}</div>}
-            <div className="rsub" style={{textAlign:"left",marginBottom:0,marginTop:2}}>{sp.address}{sp.phone&&" · Tel: "+sp.phone}{sp.email&&" · "+sp.email}</div>
-          </div>
-        </div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <div style={{fontFamily:"var(--ff-m)",fontSize:".72rem",background:"var(--navy)",color:white,padding:"5px 14px",borderRadius:4,letterSpacing:1,color:"#fff"}}>{viewRcp.type==="tuition"?"OFFICIAL TUITION FEE RECEIPT":viewRcp.type==="single"?"PAYMENT RECEIPT":"CONSOLIDATED PAYMENT STATEMENT"}</div>
-          <div style={{textAlign:"right"}}>
-            <div style={{fontFamily:"var(--ff-m)",fontSize:".72rem",fontWeight:700,color:"var(--navy)"}}>Receipt No: {viewRcp.receiptId}</div>
-            <div style={{fontSize:".62rem",color:"var(--muted)",marginTop:2}}>Date: {fmtD(viewRcp.issuedAt?.slice(0,10)||today())}</div>
-          </div>
-        </div>
-        <div style={{border:"1px solid var(--border)",borderRadius:6,padding:"10px 14px",marginBottom:10,background:"var(--goldbg)"}}>
-          <div className="rrow" style={{borderBottom:"none",padding:"3px 0"}}><span style={{color:"var(--muted)",fontSize:".72rem",width:80}}>Student</span><strong style={{fontSize:".88rem"}}>{viewRcp.student?.name}</strong></div>
-          <div className="rrow" style={{borderBottom:"none",padding:"3px 0"}}><span style={{color:"var(--muted)",fontSize:".72rem",width:80}}>Adm No</span><span style={{fontFamily:"var(--ff-m)",fontWeight:600}}>{viewRcp.student?.admno}</span></div>
-          <div className="rrow" style={{borderBottom:"none",padding:"3px 0"}}><span style={{color:"var(--muted)",fontSize:".72rem",width:80}}>Class</span><strong>{viewRcp.cls}</strong></div>
-          <div className="rrow" style={{borderBottom:"none",padding:"3px 0"}}><span style={{color:"var(--muted)",fontSize:".72rem",width:80}}>Term</span><strong>{ctx.termCfg?.term} — {ctx.termCfg?.year}</strong></div>
-        </div>
-        <table style={{width:"100%",borderCollapse:"collapse",marginBottom:10,fontSize:".8rem"}}>
-          <thead><tr style={{background:"var(--navy)",color:"#fff"}}><th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,fontSize:".68rem",letterSpacing:.5}}>DATE</th><th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,fontSize:".68rem",letterSpacing:.5}}>CATEGORY</th><th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,fontSize:".68rem",letterSpacing:.5}}>MODE</th><th style={{padding:"8px 10px",textAlign:"right",fontWeight:700,fontSize:".68rem",letterSpacing:.5}}>AMOUNT</th></tr></thead>
-          <tbody>{(viewRcp.payments||[]).map((p,i)=><tr key={i} style={{borderBottom:"1px solid var(--border2)",background:i%2===0?"#fff":"var(--bg2)"}}><td style={{padding:"7px 10px"}}>{fmtD(p.date)}</td><td style={{padding:"7px 10px"}}>{p.category}</td><td style={{padding:"7px 10px"}}><span style={{fontFamily:"var(--ff-m)",fontSize:".68rem",background:"var(--bg2)",padding:"2px 6px",borderRadius:3,border:"1px solid var(--border)"}}>{p.mode||"Cash"}</span></td><td style={{padding:"7px 10px",textAlign:"right",fontFamily:"var(--ff-m)",fontWeight:700,color:"var(--green)"}}>{N(p.amount)}</td></tr>)}</tbody>
-        </table>
-        <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderTop:"2.5px solid var(--ink)",marginBottom:6}}>
-          <span style={{fontWeight:800,fontSize:".9rem"}}>{viewRcp.type==="tuition"?"TOTAL TUITION PAID":viewRcp.type==="single"?"AMOUNT PAID":"TOTAL PAID"}</span>
-          <span style={{fontFamily:"var(--ff-m)",fontWeight:800,fontSize:"1rem",color:"var(--green)"}}>{N(viewRcp.total)}</span>
-        </div>
-        
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginTop:24,paddingTop:16,borderTop:"1px dashed var(--border)",gap:10}}>
-          <div style={{textAlign:"center",flex:1}}>
-            {bSig?<img src={bSig} alt="Bursar Signature" style={{height:56,maxWidth:160,objectFit:"contain",display:"block",margin:"0 auto 6px",borderBottom:"1px solid #888",paddingBottom:4}}/>:<div style={{height:46,borderBottom:"1.5px solid #888",width:160,margin:"0 auto 6px"}}/>}
-            <div style={{fontSize:".65rem",fontWeight:700,color:"var(--navy)"}}>BURSAR — SECTION {sec}</div>
-            <div style={{fontSize:".6rem",color:"var(--muted)",marginTop:1}}>(Official Stamp)</div>
-          </div>
-          {viewRcp.isPropPay&&<div style={{textAlign:"center",flex:1}}>
-            {adminSig?<img src={adminSig} alt="Admin Signature" style={{height:56,maxWidth:160,objectFit:"contain",display:"block",margin:"0 auto 6px",borderBottom:"1px solid #888",paddingBottom:4}}/>:<div style={{height:46,borderBottom:"1.5px solid #888",width:160,margin:"0 auto 6px"}}/>}
-            <div style={{fontSize:".65rem",fontWeight:700,color:"var(--navy)"}}>ADMINISTRATOR / PROPRIETOR</div>
-            <div style={{fontSize:".6rem",color:"var(--muted)",marginTop:1}}>(Counter-Signature)</div>
-          </div>}
-        
-        </div>
-        <div style={{marginTop:14,padding:"8px 10px",background:"var(--bg2)",borderRadius:5,fontSize:".64rem",color:"var(--muted)",textAlign:"center",lineHeight:1.7}}>
-          <div>This is an <strong>official payment receipt</strong> of {sp.name||SCHOOL_NAME}. Please retain for your records.</div>
-          <div>Issued by: {viewRcp.issuedBy||"Bursar"} · {viewRcp.issuedAt?new Date(viewRcp.issuedAt).toLocaleString():""}</div>
+      <div style={{display:"flex",gap:8,marginBottom:12,justifyContent:"flex-end"}} className="np">
+        <button className="btn btn-gold btn-sm" onClick={()=>setPrinting(true)}>🖨 Print This Receipt</button>
+        <button className="btn btn-ghost btn-sm" onClick={()=>setViewRcp(null)}>✕ Close</button>
+      </div>
+      <ReceiptDoc viewRcp={viewRcp} sec={sec} sp={sp} bSig={bSig} adminSig={adminSig} ctx={ctx}/>
+    </div>}
+    </div>:<p className="hint" style={{padding:20,textAlign:"center"}}>Select a class and student to view their ledger.</p>}
+  </div>;
+}
+// PROFESSIONAL RECEIPT DOCUMENT COMPONENT
+function ReceiptDoc({viewRcp,sec,sp,bSig,adminSig,ctx}){
+  const schoolName=sp.name||SCHOOL_NAME;
+  const titleMap={tuition:"OFFICIAL TUITION FEE RECEIPT",single:"PAYMENT RECEIPT",category:"CATEGORY PAYMENT RECEIPT",all:"CONSOLIDATED PAYMENT STATEMENT"};
+  const receiptTitle=titleMap[viewRcp.type]||"PAYMENT RECEIPT";
+  const catLabel=viewRcp.category?viewRcp.category:null;
+  return<div className="rwrap">
+    {/* Header */}
+    <div style={{textAlign:"center",borderBottom:"2.5px solid var(--navy)",paddingBottom:14,marginBottom:14}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginBottom:10}}>
+        <img src={window.LOGO_200} alt="Logo" style={{width:64,height:64,objectFit:"contain",flexShrink:0}}/>
+        <div style={{textAlign:"left"}}>
+          <div className="rsch" style={{fontSize:"1.15rem",textAlign:"left"}}>{schoolName}</div>
+          {sp.motto&&<div style={{fontStyle:"italic",fontSize:".68rem",color:"var(--slate)",marginTop:1}}>{sp.motto}</div>}
+          <div style={{fontSize:".68rem",color:"var(--slate)",marginTop:2}}>{sp.address}{sp.phone?" · Tel: "+sp.phone:""}{sp.email?" · "+sp.email:""}</div>
         </div>
       </div>
-    </div>}
+      <div style={{display:"inline-block",background:"var(--navy)",color:"#fff",padding:"5px 20px",borderRadius:4,fontFamily:"var(--ff-m)",fontSize:".72rem",fontWeight:700,letterSpacing:1.2,marginTop:4}}>{receiptTitle}</div>
+      {catLabel&&<div style={{marginTop:6,fontFamily:"var(--ff-m)",fontSize:".76rem",color:"var(--navy)",fontWeight:700}}>Category: {catLabel}</div>}
+    </div>
+    {/* Receipt meta */}
+    <div style={{display:"flex",justifyContent:"space-between",marginBottom:12,fontSize:".75rem",flexWrap:"wrap",gap:6}}>
+      <div><span style={{color:"var(--muted)"}}>Receipt No: </span><strong style={{fontFamily:"var(--ff-m)",color:"var(--navy)"}}>{viewRcp.receiptId}</strong></div>
+      <div><span style={{color:"var(--muted)"}}>Date Issued: </span><strong>{viewRcp.issuedAt?new Date(viewRcp.issuedAt).toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"}):fmtD(today())}</strong></div>
+    </div>
+    {/* Student info box */}
+    <div style={{border:"1.5px solid var(--navy)",borderRadius:6,padding:"10px 14px",marginBottom:12,background:"var(--goldbg)"}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px 20px",fontSize:".8rem"}}>
+        {[["Student Name",viewRcp.student?.name],["Admission No",viewRcp.student?.admno||"—"],["Class",viewRcp.cls],["Term",`${ctx.termCfg?.term||""} — ${ctx.termCfg?.year||""}`]].map(([l,v])=><div key={l} style={{display:"flex",gap:6,padding:"3px 0",borderBottom:"1px dashed var(--border)"}}><span style={{color:"var(--muted)",width:100,flexShrink:0,fontSize:".7rem"}}>{l}</span><strong style={{fontFamily:"var(--ff-m)",fontSize:".78rem"}}>{v}</strong></div>)}
+      </div>
+    </div>
+    {/* Payment table */}
+    <table style={{width:"100%",borderCollapse:"collapse",marginBottom:12,fontSize:".8rem"}}>
+      <thead><tr style={{background:"var(--navy)",color:"#fff"}}>
+        <th style={{padding:"8px 10px",textAlign:"left",fontSize:".68rem",letterSpacing:.5}}>DATE</th>
+        <th style={{padding:"8px 10px",textAlign:"left",fontSize:".68rem",letterSpacing:.5}}>CATEGORY</th>
+        <th style={{padding:"8px 10px",textAlign:"left",fontSize:".68rem",letterSpacing:.5}}>MODE</th>
+        <th style={{padding:"8px 10px",textAlign:"right",fontSize:".68rem",letterSpacing:.5}}>AMOUNT (₦)</th>
+      </tr></thead>
+      <tbody>{(viewRcp.payments||[]).map((p,i)=><tr key={i} style={{borderBottom:"1px solid var(--border2)",background:i%2===0?"#fff":"var(--bg2)"}}>
+        <td style={{padding:"7px 10px"}}>{fmtD(p.date)}</td>
+        <td style={{padding:"7px 10px",fontWeight:500}}>{p.category}</td>
+        <td style={{padding:"7px 10px"}}><span style={{fontFamily:"var(--ff-m)",fontSize:".68rem",background:"var(--bg2)",padding:"2px 8px",borderRadius:3,border:"1px solid var(--border)"}}>{p.mode||"Cash"}</span></td>
+        <td style={{padding:"7px 10px",textAlign:"right",fontFamily:"var(--ff-m)",fontWeight:700,color:"var(--green)"}}>{N(p.amount)}</td>
+      </tr>)}</tbody>
+    </table>
+    {/* Total */}
+    <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderTop:"2.5px solid var(--ink)",marginBottom:16}}>
+      <span style={{fontWeight:800,fontSize:".9rem"}}>{viewRcp.type==="tuition"?"TOTAL TUITION PAID":viewRcp.type==="all"?"TOTAL AMOUNT PAID":"AMOUNT PAID"}</span>
+      <span style={{fontFamily:"var(--ff-m)",fontWeight:800,fontSize:"1.05rem",color:"var(--green)"}}>{N(viewRcp.total)}</span>
+    </div>
+    {/* Signatures */}
+    <div style={{display:"grid",gridTemplateColumns:viewRcp.isPropPay?"1fr 1fr":"1fr",gap:20,marginTop:20,paddingTop:14,borderTop:"1px dashed var(--border)"}}>
+      <div style={{textAlign:"center"}}>
+        {bSig?<img src={bSig} alt="Bursar Sig" style={{height:52,maxWidth:160,objectFit:"contain",display:"block",margin:"0 auto 8px",borderBottom:"1px solid #888",paddingBottom:4}}/>:<div style={{height:44,borderBottom:"1.5px solid #888",width:160,margin:"0 auto 8px"}}/>}
+        <div style={{fontSize:".65rem",fontWeight:700,color:"var(--navy)"}}>BURSAR — SECTION {sec}</div>
+        <div style={{fontSize:".6rem",color:"var(--muted)",marginTop:1}}>(Official Stamp)</div>
+      </div>
+      {viewRcp.isPropPay&&<div style={{textAlign:"center"}}>
+        {adminSig?<img src={adminSig} alt="Admin Sig" style={{height:52,maxWidth:160,objectFit:"contain",display:"block",margin:"0 auto 8px",borderBottom:"1px solid #888",paddingBottom:4}}/>:<div style={{height:44,borderBottom:"1.5px solid #888",width:160,margin:"0 auto 8px"}}/>}
+        <div style={{fontSize:".65rem",fontWeight:700,color:"var(--navy)"}}>ADMINISTRATOR / PROPRIETOR</div>
+        <div style={{fontSize:".6rem",color:"var(--muted)",marginTop:1}}>(Counter-Signature)</div>
+      </div>}
+    </div>
+    {/* Footer */}
+    <div style={{marginTop:14,padding:"8px 12px",background:"var(--bg2)",borderRadius:5,fontSize:".64rem",color:"var(--muted)",textAlign:"center",lineHeight:1.8}}>
+      <div>This is an <strong>official payment receipt</strong> of <strong>{schoolName}</strong>. Please retain for your records.</div>
+      <div>Issued by: <strong>{viewRcp.issuedBy||"Bursar"}</strong> · {viewRcp.issuedAt?new Date(viewRcp.issuedAt).toLocaleString():""}</div>
+      {sp.principal&&<div>Principal: <strong>{sp.principal}</strong></div>}
+    </div>
   </div>;
 }
 // ANALYSIS
@@ -878,10 +939,17 @@ function Analysis({sec}){
   const an=list.map(s=>{const p=(s.payments||[]).filter(x=>x.category===cat&&x.amount>0).reduce((sum,x)=>sum+x.amount,0);return{...s,paid:p,ok:target>0&&p>=target,owing:target>0?Math.max(0,target-p):0}});
   const totalR=an.reduce((s,a)=>s+a.paid,0);const pC=an.filter(a=>a.ok).length;const oC=an.filter(a=>!a.ok&&target>0).length;const tO=an.reduce((s,a)=>s+a.owing,0);
   function doPrint(){window.print()}
+  function doPrintSection(sectionId){
+    // Hide all other sections, print, then restore
+    const allCards=document.querySelectorAll('.analysis-section');
+    allCards.forEach(el=>{if(el.id!==sectionId)el.style.display='none'});
+    window.print();
+    allCards.forEach(el=>{el.style.display=''});
+  }
   return<div className="fu">
     <div className="fb" style={{marginBottom:14}}>
       <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)"}}>Payment Analysis — Section {sec}</h2>
-      <button className="btn btn-gold btn-sm np" onClick={doPrint}>🖨 Print / Download</button>
+      <button className="btn btn-gold btn-sm np" onClick={doPrint}>🖨 Print Full Report</button>
     </div>
     <div className="cp">{classes.map(c=><button key={c} className={"pill np"+(sc===c?" a":"")} onClick={()=>setSc(c)}>{c} ({(ctx.students[c]||[]).length})</button>)}</div>
     <div className="fr np" style={{marginBottom:14}}>
@@ -905,8 +973,20 @@ function Analysis({sec}){
       <div className="kpi" style={{"--accent":"var(--blue)"}}><div className="kl">Completed</div><div className="kv">{pC} / {list.length}</div><div className="ksub">students</div></div>
       <div className="kpi" style={{"--accent":"var(--red)"}}><div className="kl">Outstanding</div><div className="kv" style={{color:"var(--red)"}}>{N(tO)}</div><div className="ksub">{oC} students owing</div></div>
     </div>
-    {pC>0&&<div className="card"><div className="fb" style={{marginBottom:8}}><div className="sect" style={{color:"var(--green)",marginBottom:0}}>✅ Completed ({pC})</div></div><div className="tw"><table><thead><tr><th>#</th><th>Student</th><th>Adm No</th><th className="r">Paid</th></tr></thead><tbody>{an.filter(a=>a.ok).map((a,i)=><tr key={a.name}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:600}}>{a.name}</td><td className="mn">{a.admno}</td><td className="my">{N(a.paid)}</td></tr>)}</tbody></table></div></div>}
-    {oC>0&&<div className="card"><div className="fb" style={{marginBottom:8}}><div className="sect" style={{color:"var(--red)",marginBottom:0}}>⚠️ Yet to Complete ({oC})</div></div><div className="tw"><table><thead><tr><th>#</th><th>Student</th><th>Adm No</th><th className="r">Paid</th><th className="r">Owing</th></tr></thead><tbody>{an.filter(a=>!a.ok&&target>0).map((a,i)=><tr key={a.name}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:600}}>{a.name}</td><td className="mn">{a.admno}</td><td className="my">{N(a.paid)}</td><td className="mr">{N(a.owing)}</td></tr>)}</tbody></table></div></div>}
+    {pC>0&&<div className="card analysis-section" id="analysis-completed">
+      <div className="fb" style={{marginBottom:8}}>
+        <div className="sect" style={{color:"var(--green)",marginBottom:0}}>✅ Completed ({pC})</div>
+        <button className="btn btn-gold btn-xs np" onClick={()=>doPrintSection("analysis-completed")}>🖨 Print Completed</button>
+      </div>
+      <div className="tw"><table><thead><tr><th>#</th><th>Student</th><th>Adm No</th><th className="r">Paid</th></tr></thead><tbody>{an.filter(a=>a.ok).map((a,i)=><tr key={a.name}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:600}}>{a.name}</td><td className="mn">{a.admno}</td><td className="my">{N(a.paid)}</td></tr>)}</tbody></table></div>
+    </div>}
+    {oC>0&&<div className="card analysis-section" id="analysis-owing">
+      <div className="fb" style={{marginBottom:8}}>
+        <div className="sect" style={{color:"var(--red)",marginBottom:0}}>⚠️ Yet to Complete ({oC})</div>
+        <button className="btn btn-red btn-xs np" onClick={()=>doPrintSection("analysis-owing")}>🖨 Print Owing</button>
+      </div>
+      <div className="tw"><table><thead><tr><th>#</th><th>Student</th><th>Adm No</th><th className="r">Paid</th><th className="r">Owing</th></tr></thead><tbody>{an.filter(a=>!a.ok&&target>0).map((a,i)=><tr key={a.name}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:600}}>{a.name}</td><td className="mn">{a.admno}</td><td className="my">{N(a.paid)}</td><td className="mr">{N(a.owing)}</td></tr>)}</tbody></table></div>
+    </div>}
     {target===0&&<div className="msg-warn np">⚠ No target set for "{cat}" in {sc}. Go to Settings → Fee Targets.</div>}
     <div className="po" style={{marginTop:24,paddingTop:16,borderTop:"1px dashed #ccc",fontSize:".65rem",color:"#888",textAlign:"center"}}>
       Report generated by: {ctx.session?.name} · {new Date().toLocaleString()}
@@ -915,22 +995,47 @@ function Analysis({sec}){
 }
 // LESSONS
 function Lessons(){
-  const ctx=useApp();const isA=ctx.session?.role==="admin"||ctx.session?.role==="superadmin";const lc=ctx.lessonCur||{days:{},teacherRate:2500,teacherCount:10};const days=lc.days||{};const rate=Number(lc.teacherRate)||0;const tc=Number(lc.teacherCount)||0;
+  const ctx=useApp();
+  const role=ctx.session?.role;
+  const isAdmin=role==="admin"||role==="superadmin";
+  const sessionSection=ctx.session?.section; // "A", "B", or "both"
+  const[activeSec,setActiveSec]=useState(()=>sessionSection==="both"||isAdmin?"A":sessionSection);
+  // Determine which classes to show based on active section
+  const sectionClasses=activeSec==="A"?SEC_A:SEC_B;
+  const lc=ctx.lessonCur||{days:{},teacherRate:2500,teacherCount:10};const days=lc.days||{};const rate=Number(lc.teacherRate)||0;const tc=Number(lc.teacherCount)||0;
   const setDC=(d,c,v)=>{const nd={...days,[d]:{...(days[d]||{}),[c]:parseFloat(v)||0}};ctx.setLessonCur({...lc,days:nd})};
-  const dt={};DAYS.forEach(d=>{dt[d]=ALL_CLS.reduce((s,c)=>s+(days[d]?.[c]||0),0)});
+  // Totals only for this section's classes
+  const dt={};DAYS.forEach(d=>{dt[d]=sectionClasses.reduce((s,c)=>s+(days[d]?.[c]||0),0)});
   const gt=Object.values(dt).reduce((s,v)=>s+v,0);const tp=rate*tc;const pr=gt-tp;
-  async function close(){if(!isA)return;const w={wid:uid(),date:today(),days:{...days},teacherRate:rate,teacherCount:tc,grandTotal:gt,totalTeacherPay:tp,proprietorShare:pr,created_at:new Date().toISOString()};await ctx.saveLW(w);const newLc={days:{},teacherRate:rate,teacherCount:tc};ctx.setLessonCur(newLc);ctx.addAudit("LESSON_CLOSE",`${N(gt)} — Teachers: ${N(tp)}, Proprietor: ${N(pr)}`,ctx.session?.name);await ctx.saveAllSettings(ctx.categories,ctx.feeTargets,ctx.termCfg,newLc,ctx.schoolProfile,ctx.aiConfig)}
+  // All-sections grand total (for admin overview)
+  const gtAll=DAYS.reduce((s,d)=>s+ALL_CLS.reduce((ss,c)=>ss+(days[d]?.[c]||0),0),0);
+  async function close(){
+    if(!isAdmin)return;
+    // Archive current week with all class data
+    const w={wid:uid(),date:today(),days:{...days},teacherRate:rate,teacherCount:tc,grandTotal:gtAll,totalTeacherPay:tp,proprietorShare:gtAll-tp,created_at:new Date().toISOString()};
+    await ctx.saveLW(w);
+    const newLc={days:{},teacherRate:rate,teacherCount:tc};ctx.setLessonCur(newLc);
+    ctx.addAudit("LESSON_CLOSE",`${N(gtAll)} — Teachers: ${N(tp)}, Proprietor: ${N(gtAll-tp)}`,ctx.session?.name);
+    await ctx.saveAllSettings(ctx.categories,ctx.feeTargets,ctx.termCfg,newLc,ctx.schoolProfile,ctx.aiConfig);
+  }
+  const canSeeSection=(s)=>{if(isAdmin||sessionSection==="both")return true;return sessionSection===s};
   return<div className="fu">
-    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:8}}>Lesson Portal — Weekly Cycle</h2>
-    <div className="msg-info" style={{marginBottom:14}}>ℹ Lesson fees are completely independent of the Daily Cash Book. They do not appear in student ledgers or fee categories.</div>
+    <div className="fb" style={{marginBottom:8}}>
+      <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)"}}>Lesson Portal — Weekly Cycle</h2>
+      {(isAdmin||sessionSection==="both")&&<div className="stg">
+        <button className={"stb"+(activeSec==="A"?" a":"")} onClick={()=>setActiveSec("A")}>Section A</button>
+        <button className={"stb"+(activeSec==="B"?" a":"")} onClick={()=>setActiveSec("B")}>Section B</button>
+      </div>}
+    </div>
+    <div className="msg-info" style={{marginBottom:14}}>ℹ Lesson fees are completely independent of the Daily Cash Book. They do not appear in student ledgers or fee categories. Viewing: <strong>Section {activeSec}</strong> — {activeSec==="A"?"Crèche to Primary 1":"Primary 2 to SS3"}.</div>
     <div className="card"><div className="sect">Week Configuration</div><div className="fr">
       <div className="fl"><span className="flb">Flat Rate / Teacher (₦)</span><input type="number" value={rate} onChange={e=>ctx.setLessonCur({...lc,teacherRate:parseFloat(e.target.value)||0})} className="inpm" style={{width:140}}/></div>
       <div className="fl"><span className="flb">Teachers on Ground</span><input type="number" value={tc} onChange={e=>ctx.setLessonCur({...lc,teacherCount:parseInt(e.target.value)||0})} className="inpm" style={{width:110}}/></div>
     </div></div>
-    <div className="card"><div className="sect">Daily Collection by Class</div><div style={{overflowX:"auto"}}>
+    <div className="card"><div className="sect">Daily Collection — Section {activeSec} Classes</div><div style={{overflowX:"auto"}}>
       <div className="lg" style={{gridTemplateColumns:`140px repeat(${DAYS.length},1fr) 95px`,minWidth:700}}>
         <div className="lh" style={{textAlign:"left",paddingLeft:10}}>Class</div>{DAYS.map(d=><div key={d} className="lh">{d.slice(0,3)}</div>)}<div className="lh">Total</div>
-        {ALL_CLS.map(c=>{const rt=DAYS.reduce((s,d)=>s+(days[d]?.[c]||0),0);return<React.Fragment key={c}>
+        {sectionClasses.map(c=>{const rt=DAYS.reduce((s,d)=>s+(days[d]?.[c]||0),0);return<React.Fragment key={c}>
           <div className="lc" style={{textAlign:"left",paddingLeft:10,fontSize:".74rem",fontWeight:500}}>{c}</div>
           {DAYS.map(d=><div key={d} className="lc"><input type="number" min="0" value={days[d]?.[c]||""} onChange={e=>setDC(d,c,e.target.value)} className="li" placeholder="0"/></div>)}
           <div className="lc lt" style={{fontSize:".76rem"}}>{rt>0?N(rt):"—"}</div>
@@ -938,13 +1043,14 @@ function Lessons(){
         <div className="lc lt" style={{textAlign:"left",paddingLeft:10,fontWeight:700,fontSize:".74rem"}}>DAY TOTAL</div>{DAYS.map(d=><div key={d} className="lc lt" style={{fontSize:".76rem"}}>{dt[d]>0?N(dt[d]):"—"}</div>)}
         <div className="lc" style={{background:"var(--navy)",color:"var(--gold)",fontFamily:"var(--ff-m)",fontWeight:800,fontSize:".8rem"}}>{N(gt)}</div>
       </div></div></div>
-    <div className="card"><div className="sect">Weekly Settlement</div><div className="kg">
-      <div className="kpi" style={{"--accent":"var(--navy)"}}><div className="kl">Grand Total</div><div className="kv">{N(gt)}</div></div>
+    <div className="card"><div className="sect">Weekly Settlement — Section {activeSec}</div><div className="kg">
+      <div className="kpi" style={{"--accent":"var(--navy)"}}><div className="kl">Section {activeSec} Total</div><div className="kv">{N(gt)}</div></div>
       <div className="kpi" style={{"--accent":"var(--green)"}}><div className="kl">Teachers ({tc}×{N(rate)})</div><div className="kv" style={{color:"var(--green)"}}>{N(tp)}</div></div>
-      <div className="kpi" style={{"--accent":pr>=0?"var(--blue)":"var(--red)"}}><div className="kl">Proprietor</div><div className="kv" style={{color:pr>=0?"var(--blue)":"var(--red)"}}>{N(pr)}</div></div>
+      <div className="kpi" style={{"--accent":pr>=0?"var(--blue)":"var(--red)"}}><div className="kl">Proprietor Share</div><div className="kv" style={{color:pr>=0?"var(--blue)":"var(--red)"}}>{N(Math.max(0,gt-tp))}</div></div>
+      {isAdmin&&gtAll!==gt&&<div className="kpi" style={{"--accent":"var(--amber)"}}><div className="kl">Combined (A+B)</div><div className="kv">{N(gtAll)}</div><div className="ksub">All sections</div></div>}
     </div>
-    {isA&&gt>0&&<button className="btn btn-green" onClick={close}>✓ CLOSE WEEK & ARCHIVE</button>}
-    {!isA&&<p className="hint">Only Admin can approve week close.</p>}
+    {isAdmin&&gtAll>0&&<button className="btn btn-green" onClick={close}>✓ CLOSE WEEK & ARCHIVE (All Sections)</button>}
+    {!isAdmin&&<p className="hint">Only Admin can approve week close.</p>}
     </div>
     {(ctx.lessonWeeks||[]).length>0&&<div className="card"><div className="sect">Archived Weeks</div><div className="tw"><table><thead><tr><th>Date Closed</th><th className="r">Total</th><th className="r">Teachers</th><th className="r">Rate/Teacher</th><th className="r">Proprietor</th></tr></thead><tbody>{[...(ctx.lessonWeeks||[])].reverse().map(a=><tr key={a.wid}><td>{fmtD(a.date)}</td><td className="my">{N(a.grandTotal)}</td><td className="my">{N(a.totalTeacherPay)}</td><td className="my">{N(a.teacherRate)}</td><td className={a.proprietorShare>=0?"my":"mr"}>{N(a.proprietorShare)}</td></tr>)}</tbody></table></div></div>}
   </div>;
