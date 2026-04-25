@@ -304,6 +304,7 @@ function Prov({children}){
       setAiConfig(LS.g("ssfp_ai",{apiKey:"",model:"google/gemini-2.0-flash-001"}));
     }
   })()},[]);
+  const[dbWriteErr,setDbWriteErr]=useState(null);
   const saveAllSettings=useCallback(async(cats,ft,tc,lc,sp,ai)=>{
     // 1. Always write to localStorage immediately (local cache)
     LS.s("ssfp_cats",cats);LS.s("ssfp_targets",ft);LS.s("ssfp_term",tc);LS.s("ssfp_lesson",lc);LS.s("ssfp_profile",sp);LS.s("ssfp_ai",ai);
@@ -320,7 +321,6 @@ function Prov({children}){
       return{ok:false,error:msg};
     }
   },[]);
-  const[dbWriteErr,setDbWriteErr]=useState(null);
   const saveCashEntry=useCallback(async(e)=>{
     const row={entry_id:e.id,date:e.date,class_name:e.cls||null,student:e.student||null,category:e.category||null,amount:e.amount,mode:e.mode||"Cash",entry_type:e.type,timestamp:e.timestamp,section:e.section,is_prior_term:e.isPriorTerm||false,reversed:false,reversal_of:e.reversalOf||null,note:e.note||e.description||null,receipt_id:e.id};
     // Use UPSERT (not INSERT) so duplicate entry_ids never cause silent failures
