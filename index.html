@@ -285,11 +285,30 @@ function Prov({children}){
       let raw=[];
       const mapped={};
       try{
-        raw=await sbG("students","select=id,name,class_key,admno,gender&order=name.asc");
-        raw.forEach(s=>{const cls=mapKey(s.class_key);if(!cls)return;if(!mapped[cls])mapped[cls]=[];if(!mapped[cls].find(x=>x.admno===s.admno&&x.name===s.name))mapped[cls].push({name:s.name,admno:s.admno||"",gender:s.gender||"",supaId:s.id,payments:[],arrears:0})});
+        // Fetch all columns — auto-detect whatever schema the result portal uses
+        raw=await sbG("students","select=*&order=name.asc&limit=2000");
+        if(raw.length>0){
+          // Detect column names dynamically from first row
+          const sample=raw[0];
+          const keys=Object.keys(sample);
+          // name column: name, student_name, fullname, full_name
+          const nameCol=["name","student_name","fullname","full_name","student"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("name"))||"name";
+          // class column: class_key, class, class_name, className
+          const classCol=["class_key","class","class_name","className","student_class"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("class"))||"class_key";
+          // admno column: admno, adm_no, admission_no, admission_number, reg_no
+          const admCol=["admno","adm_no","admission_no","admission_number","reg_no","registration_number"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("adm")||k.toLowerCase().includes("reg"))||"admno";
+          const genderCol=["gender","sex"].find(k=>keys.includes(k))||"gender";
+          console.log("Students schema detected — name:",nameCol,"class:",classCol,"adm:",admCol);
+          raw.forEach(s=>{
+            const cls=mapKey(s[classCol]);if(!cls)return;
+            if(!mapped[cls])mapped[cls]=[];
+            const adm=s[admCol]||("WTS-"+String(s.id||"").slice(0,6).toUpperCase());
+            if(!mapped[cls].find(x=>x.admno===adm&&x.name===s[nameCol]))
+              mapped[cls].push({name:s[nameCol]||"",admno:adm,gender:s[genderCol]||"",supaId:s.id,payments:[],arrears:0});
+          });
+        }
       }catch(se){
-        console.warn("Students table load failed — app continues without student sync:",se.message);
-        // Fall back to localStorage cache for students only
+        console.warn("Students table load failed:",se.message);
         const cached=LS.g("ssfp_students",{});Object.assign(mapped,cached);
       }
       // DB is the SINGLE source of truth. Always read from DB. localStorage is only a write-through cache.
