@@ -264,14 +264,34 @@ function Prov({children}){
   const[schoolProfile,setSchoolProfile]=useState(()=>LS.g("ssfp_profile",{name:SCHOOL_NAME,address:"",phone:"",email:"",principal:"",motto:"",bursarASignature:"",bursarBSignature:"",adminSignature:""}));
   const[aiConfig,setAiConfig]=useState(()=>LS.g("ssfp_ai",{apiKey:"",model:"google/gemini-2.0-flash-001"}));
   useEffect(()=>{(async()=>{
+    // Each section loads independently — one failure never kills the whole app
+    const tryG=async(t,q)=>{try{return await sbG(t,q)}catch(e){console.warn("Load failed:",t,e.message);return[]}};
     try{
-      setSyncMsg("Loading students…");
-      const raw=await sbG("students","select=id,name,class_key,admno,gender&order=name.asc");
-      const mapped={};
-      raw.forEach(s=>{const cls=mapKey(s.class_key);if(!cls)return;if(!mapped[cls])mapped[cls]=[];if(!mapped[cls].find(x=>x.admno===s.admno&&x.name===s.name))mapped[cls].push({name:s.name,admno:s.admno||"",gender:s.gender||"",supaId:s.id,payments:[],arrears:0})});
-      const tryG=async(t,q)=>{try{return await sbG(t,q)}catch{return[]}};
+      setSyncMsg("Connecting to database…");
+      // Step 1: Load SSFP tables first — these are the critical tables
       let cb=[],cfg=null,sal=[],ext=[],lw=[],dp=[],sch=[],al=[],nf=[];
-      [cb,sal,ext,lw,dp,sch,al,nf]=await Promise.all([tryG("ssfp_cashbook","order=timestamp.asc"),tryG("ssfp_salaries","order=created_at.desc"),tryG("ssfp_ext_exams","order=created_at.desc"),tryG("ssfp_lesson_weeks","order=created_at.desc"),tryG("ssfp_direct_pay","order=created_at.desc"),tryG("ssfp_scholarships","order=created_at.desc"),tryG("ssfp_audit_log","order=time.desc&limit=300"),tryG("ssfp_notifications","order=time.desc&limit=100")]);
+      [cb,sal,ext,lw,dp,sch,al,nf]=await Promise.all([
+        tryG("ssfp_cashbook","order=timestamp.asc"),
+        tryG("ssfp_salaries","order=created_at.desc"),
+        tryG("ssfp_ext_exams","order=created_at.desc"),
+        tryG("ssfp_lesson_weeks","order=created_at.desc"),
+        tryG("ssfp_direct_pay","order=created_at.desc"),
+        tryG("ssfp_scholarships","order=created_at.desc"),
+        tryG("ssfp_audit_log","order=time.desc&limit=300"),
+        tryG("ssfp_notifications","order=time.desc&limit=100")
+      ]);
+      // Step 2: Load students separately — never crash the app if this fails
+      setSyncMsg("Loading students…");
+      let raw=[];
+      const mapped={};
+      try{
+        raw=await sbG("students","select=id,name,class_key,admno,gender&order=name.asc");
+        raw.forEach(s=>{const cls=mapKey(s.class_key);if(!cls)return;if(!mapped[cls])mapped[cls]=[];if(!mapped[cls].find(x=>x.admno===s.admno&&x.name===s.name))mapped[cls].push({name:s.name,admno:s.admno||"",gender:s.gender||"",supaId:s.id,payments:[],arrears:0})});
+      }catch(se){
+        console.warn("Students table load failed — app continues without student sync:",se.message);
+        // Fall back to localStorage cache for students only
+        const cached=LS.g("ssfp_students",{});Object.assign(mapped,cached);
+      }
       // DB is the SINGLE source of truth. Always read from DB. localStorage is only a write-through cache.
       try{const r=await sbG("ssfp_settings","key=eq.main&limit=1");if(r&&r[0])cfg=r[0].value}catch(se){console.warn("Settings fetch:",se)}
       if(cfg){
@@ -292,7 +312,8 @@ function Prov({children}){
       cb.filter(e=>e.reversal_of).forEach(e=>{if(!mapped[e.class_name])return;const si=mapped[e.class_name].findIndex(s=>s.name===e.student);if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:-Math.abs(e.amount),mode:e.mode,note:"Reversal",timestamp:e.timestamp})});
       setStudents(mapped);setCashBook(cb);
       setSalaries(sal);setExtExams(ext);setLessonWeeks(lw);setDirectPay(dp);setScholarships(sch);setAuditLog(al);setNotifs(nf);
-      setDbOk(true);setSyncMsg(`Connected — ${raw.length} students`);
+      LS.s("ssfp_students",mapped);
+      setDbOk(true);setSyncMsg(`Connected — ${raw.length} students, ${cb.length} entries`);
     }catch(e){
       console.error(e);setDbOk(false);setSyncMsg("Offline — local cache");
       setStudents(LS.g("ssfp_students",{}));setCashBook(LS.g("ssfp_cashbook",[]));
