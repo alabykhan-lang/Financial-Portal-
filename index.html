@@ -477,7 +477,9 @@ function Portal(){
   const isProp=session?.isProp||false;const isSuper=session?.isSuper||false;const role=session?.role;
   const[tab,setTabRaw]=useState(()=>SS.g("ssfp_tab","home"));
   const[sec,setSecRaw]=useState(()=>SS.g("ssfp_sec",session?.section==="B"?"B":"A"));
-  const setTab=t=>{setTabRaw(t);SS.s("ssfp_tab",t)};
+  const[tabHistory,setTabHistory]=useState(["home"]);
+  const setTab=t=>{setTabRaw(t);SS.s("ssfp_tab",t);setTabHistory(h=>{const last=h[h.length-1];return last===t?h:[...h.slice(-9),t]});};
+  const goBack=()=>{setTabHistory(h=>{if(h.length<=1)return h;const nh=h.slice(0,-1);const prev=nh[nh.length-1];setTabRaw(prev);SS.s("ssfp_tab",prev);return nh;});};
   const setSec=s=>{setSecRaw(s);SS.s("ssfp_sec",s)};
   const[open,setOpen]=useState(false);const[showN,setShowN]=useState(false);
   const ur=(notifs||[]).filter(n=>!n.read).length;
@@ -535,6 +537,7 @@ function Portal(){
     <div className="pm">
       <header className="ptb np">
         <button className="hbg" onClick={()=>setOpen(o=>!o)}>☰</button>
+        {tabHistory.length>1&&<button className="hbg" onClick={goBack} title="Go back" style={{fontSize:"1rem"}}>←</button>}
         <span className="ptitle">{pageTitle}</span>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           {isAdmin&&<div className="stg">{["A","B"].map(s=><button key={s} className={"stb"+(sec===s?" a":"")} onClick={()=>setSec(s)}>Sec {s}</button>)}</div>}
@@ -557,7 +560,7 @@ function Portal(){
         {tab==="ledgers"&&<Ledgers sec={effSec}/>}
         {tab==="analysis"&&<Analysis sec={effSec}/>}
         {tab==="lessons"&&<Lessons sec={effSec}/>}
-        {tab==="dash"&&isAdmin&&<Dash/>}
+        {tab==="dash"&&isAdmin&&<Dash sec={effSec}/>}
         {tab==="acct"&&isAdmin&&<Acct/>}
         {tab==="sal"&&isAdmin&&<Sal/>}
         {tab==="exam"&&isAdmin&&<ExamPortal/>}
@@ -1082,10 +1085,22 @@ function Lessons({sec}){
   </div>;
 }
 // DASHBOARD
-function Dash(){
-  const ctx=useApp();const ae=ctx.cashBook||[];const ti=ae.filter(e=>e.entry_type==="Income"&&!e.reversed).reduce((s,e)=>s+e.amount,0);const te=ae.filter(e=>e.entry_type==="Expense"&&!e.reversal_of).reduce((s,e)=>s+e.amount,0);const pt=ae.filter(e=>e.is_prior_term&&e.entry_type==="Income"&&!e.reversed).reduce((s,e)=>s+e.amount,0);const catBk={};ae.filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{catBk[e.category]=(catBk[e.category]||0)+e.amount});const cStats=ALL_CLS.map(c=>{const st=ctx.students[c]||[];const tp=st.reduce((s,x)=>(x.payments||[]).filter(p=>p.amount>0).reduce((ps,p)=>ps+p.amount,0)+s,0);return{c,n:st.length,tp}}).filter(x=>x.n>0);
+function Dash({sec}){
+  const ctx=useApp();
+  const isAdmin=ctx.session?.role==="admin"||ctx.session?.role==="superadmin";
+  // Section-filtered entries; admin can see all or per section
+  const allE=ctx.cashBook||[];
+  const ae=sec?allE.filter(e=>e.section===sec):allE;
+  const secClasses=sec==="A"?SEC_A:sec==="B"?SEC_B:ALL_CLS;
+  const ti=ae.filter(e=>e.entry_type==="Income"&&!e.reversed).reduce((s,e)=>s+e.amount,0);
+  const te=ae.filter(e=>e.entry_type==="Expense"&&!e.reversal_of).reduce((s,e)=>s+e.amount,0);
+  const pt=ae.filter(e=>e.is_prior_term&&e.entry_type==="Income"&&!e.reversed).reduce((s,e)=>s+e.amount,0);
+  const catBk={};ae.filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{catBk[e.category]=(catBk[e.category]||0)+e.amount});
+  const cStats=secClasses.map(c=>{const st=ctx.students[c]||[];const tp=st.reduce((s,x)=>(x.payments||[]).filter(p=>p.amount>0).reduce((ps,p)=>ps+p.amount,0)+s,0);return{c,n:st.length,tp}}).filter(x=>x.n>0);
   return<div className="fu">
-    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:14}}>Dashboard</h2>
+    <div className="fb" style={{marginBottom:14}}>
+      <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)"}}>Dashboard — Section {sec||"All"}</h2>
+    </div>
     <div className="msg-warn">⚠ {(ctx.directPay||[]).length} direct payment(s) on record. {(ctx.scholarships||[]).length} scholarship/mercy student(s). Verify in Settings.</div>
     <div className="kg">
       <div className="kpi" style={{"--accent":"var(--green)"}}><div className="kl">Live Liquidity</div><div className="kv" style={{color:"var(--green)"}}>{N(ti-te)}</div></div>
@@ -1161,11 +1176,13 @@ function UserMgmt(){
     if(users.find(u=>u.username.toLowerCase()===form.username.trim().toLowerCase())){setMsg({t:1,m:"Username exists."});return}
     const hash=await hashPin(form.pin,form.username.trim().toLowerCase());
     const nu={uid:uid(),name:form.name.trim(),username:form.username.trim().toLowerCase(),role:form.role,section:form.section,pin_hash:hash,is_active:true,created_by:session.name,created_at:new Date().toISOString(),last_seen:null,login_count:0};
-    try{await sbP("ssfp_users",nu)}catch(e){console.error(e)}
-    const up=[...users,nu];setUsers(up);LS.s("ssfp_users",up);
+    try{await sbU("ssfp_users",[nu])}catch(e){setMsg({t:1,m:"DB error: "+e.message});return}
+    const up=[...users,nu];setUsers(up);
     addAudit("ADD_USER",`Created ${nu.username} (${nu.role})`,session.name);
     setForm({name:"",username:"",role:"bursarA",section:"A",pin:"",pin2:""});
-    setMsg({t:0,m:`✓ User "${nu.username}" created.`});setTimeout(()=>setMsg(null),3e3);
+    // Reload from DB to confirm save was persisted
+    try{const r=await sbG("ssfp_users","order=name.asc");setUsers(r)}catch{}
+    setMsg({t:0,m:`✓ User "${nu.username}" created and saved to database.`});setTimeout(()=>setMsg(null),4e3);
   }
   async function toggle(id,active){try{await sbPA("ssfp_users",`uid=eq.${id}`,{is_active:active})}catch{}setUsers(p=>p.map(u=>u.uid===id?{...u,is_active:active}:u));addAudit(active?"ENABLE":"DISABLE",`User ${id}`,session.name)}
   async function resetPin(u){const p=prompt(`New PIN for ${u.name} (digits only):`);if(!p||!/^\d{4,8}$/.test(p)){alert("PIN must be 4-8 digits.");return}const h=await hashPin(p,u.username);try{await sbPA("ssfp_users",`uid=eq.${u.uid}`,{pin_hash:h})}catch{}setUsers(p2=>p2.map(x=>x.uid===u.uid?{...x,pin_hash:h}:x));addAudit("RESET_PIN",`PIN reset for ${u.username}`,session.name);alert("✓ PIN updated.")}
