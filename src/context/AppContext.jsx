@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext } from 'react';
 import { sbG, sbP, sbPA, sbU, sbD } from '../utils/api';
 import { DEF_CATS, SCHOOL_NAME, SUPER_USER, SUPER_PASS, PROP_USER } from '../constants';
 import { today, mapKey, uid, N, LS, SS } from '../utils/helpers';
@@ -57,9 +57,10 @@ export function Prov({ children }) {
           });
         }
       }catch(se){
+        console.warn("Students table load failed:",se.message);
         const cached=LS.g("ssfp_students",{});Object.assign(mapped,cached);
       }
-      try{const r=await sbG("ssfp_settings","key=eq.main&limit=1");if(r&&r[0])cfg=r[0].value}catch(se){}
+      try{const r=await sbG("ssfp_settings","key=eq.main&limit=1");if(r&&r[0])cfg=r[0].value}catch(se){console.warn("Settings fetch:",se)}
       if(cfg){
         if(cfg.categories){setCategories(cfg.categories);LS.s("ssfp_cats",cfg.categories)}
         if(cfg.feeTargets){setFeeTargets(cfg.feeTargets);LS.s("ssfp_targets",cfg.feeTargets)}
@@ -77,21 +78,25 @@ export function Prov({ children }) {
     }catch(e){
       console.error(e);setDbOk(false);setSyncMsg("Offline — local cache");
       setStudents(LS.g("ssfp_students",{}));setCashBook(LS.g("ssfp_cashbook",[]));
+      setCategories(LS.g("ssfp_cats",DEF_CATS));setFeeTargets(LS.g("ssfp_targets",{}));
+      setTermCfg(LS.g("ssfp_term",{term:"Term 1",year:"2025/2026",activeCats:DEF_CATS.reduce((a,c)=>({...a,[c]:true}),{})}));
+      setLessonCur(LS.g("ssfp_lesson",{days:{},teacherRate:2500,teacherCount:10}));
+      setSalaries(LS.g("ssfp_sal",[]));setExtExams(LS.g("ssfp_ext",[]));setLessonWeeks(LS.g("ssfp_lw",[]));setDirectPay(LS.g("ssfp_dp",[]));setScholarships(LS.g("ssfp_sch",[]));setAuditLog(LS.g("ssfp_al",[]));setNotifs(LS.g("ssfp_nf",[]));
+      const sp2=LS.g("ssfp_profile",{name:SCHOOL_NAME,address:"",phone:"",email:"",principal:"",motto:"",bursarASignature:"",bursarBSignature:"",adminSignature:""});setSchoolProfile(sp2);
+      setAiConfig(LS.g("ssfp_ai",{apiKey:"",model:"google/gemini-2.0-flash-001"}));
     }
   })()},[]);
 
-  const[dbWriteErr,setDbWriteErr]=useState(null);
   const saveAllSettings=useCallback(async(cats,ft,tc,lc,sp,ai)=>{
     LS.s("ssfp_cats",cats);LS.s("ssfp_targets",ft);LS.s("ssfp_term",tc);LS.s("ssfp_lesson",lc);LS.s("ssfp_profile",sp);LS.s("ssfp_ai",ai);
     const val={categories:cats,feeTargets:ft,termCfg:tc,lessonCur:lc,schoolProfile:sp,aiConfig:ai};
-    try{await sbU("ssfp_settings",[{key:"main",value:val}]);setDbWriteErr(null);return{ok:true}}
-    catch(e){setDbWriteErr("⚠ Settings DB write failed");return{ok:false}}
+    try{await sbU("ssfp_settings",[{key:"main",value:val}]);return{ok:true}}
+    catch(e){return{ok:false,error:e.message}}
   },[]);
 
   const saveCashEntry=useCallback(async(e)=>{
     const row={entry_id:e.id,date:e.date,class_name:e.cls||null,student:e.student||null,category:e.category||null,amount:e.amount,mode:e.mode||"Cash",entry_type:e.type,timestamp:e.timestamp,section:e.section,is_prior_term:e.isPriorTerm||false,reversed:false,reversal_of:e.reversalOf||null,note:e.note||e.description||null,receipt_id:e.id};
-    try{await sbU("ssfp_cashbook",[row]);setDbWriteErr(null)}
-    catch(err){setDbWriteErr("⚠ DB write failed")}
+    try{await sbU("ssfp_cashbook",[row])}catch(err){}
     setCashBook(p=>{const n=[...p,row];LS.s("ssfp_cashbook",n);return n});
   },[]);
 
@@ -115,39 +120,40 @@ export function Prov({ children }) {
 
   const runAIAudit=useCallback(async()=>{
     if(!aiConfig.apiKey)return;
-    addNotif("AI Audit initiated...","warning");
-  },[aiConfig,addNotif]);
+    const ae=cashBook||[];
+    const ti=ae.filter(e=>e.entry_type==="Income"&&!e.reversed).reduce((s,e)=>s+e.amount,0);
+    const te=ae.filter(e=>e.entry_type==="Expense"&&!e.reversal_of).reduce((s,e)=>s+e.amount,0);
+    try{const resp=await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+aiConfig.apiKey},body:JSON.stringify({model:aiConfig.model,messages:[{role:"user",content:`Nigerian school audit: Income ₦${ti}, Exp ₦${te}. Reversals: ${ae.filter(e=>e.reversal_of).length}. Concise feedback.`}]})});const data=await resp.json();const text=data?.choices?.[0]?.message?.content||"";if(text)addNotif("✶ AI Audit: "+text,"warning")}catch(e){}
+  },[cashBook,aiConfig,addNotif]);
 
   const refreshStudents=useCallback(async()=>{
-    setSyncMsg("Syncing…");setDbOk(null);
-    try{const raw=await sbG("students","select=id,name,class_key,admno,gender&order=name.asc");const mapped={};raw.forEach(s=>{const cls=mapKey(s.class_key);if(!cls)return;if(!mapped[cls])mapped[cls]=[];if(!mapped[cls].find(x=>x.admno===s.admno&&x.name===s.name))mapped[cls].push({name:s.name,admno:s.admno||"",gender:s.gender||"",supaId:s.id,payments:[],arrears:0})});setStudents(mapped);setDbOk(true);setSyncMsg(`Synced — ${raw.length} students`)}
-    catch(e){setDbOk(false);setSyncMsg("Sync failed")}
+    setSyncMsg("Syncing…");
+    try{const raw=await sbG("students","select=*&order=name.asc");const mapped={};raw.forEach(s=>{const cls=mapKey(s.class_key);if(!cls)return;if(!mapped[cls])mapped[cls]=[];if(!mapped[cls].find(x=>x.admno===s.admno))mapped[cls].push({name:s.name,admno:s.admno,gender:s.gender,supaId:s.id,payments:[],arrears:0})});setStudents(mapped);setSyncMsg(`Synced — ${raw.length} students`)}catch(e){}
   },[]);
 
-  const saveSal=async s=>{try{await sbP("ssfp_salaries",s)}catch{};setSalaries(p=>[...p,s])};
-  const saveExt=async e=>{try{await sbP("ssfp_ext_exams",e)}catch{};setExtExams(p=>[...p,e])};
-  const saveLW=async w=>{try{await sbP("ssfp_lesson_weeks",w)}catch{};setLessonWeeks(p=>[...p,w])};
-  const saveDP=async d=>{try{await sbP("ssfp_direct_pay",d)}catch{};setDirectPay(p=>[...p,d])};
-  const saveSch=async s=>{try{await sbP("ssfp_scholarships",s)}catch{};setScholarships(p=>[...p,s])};
+  const saveSal=async s=>{try{await sbP("ssfp_salaries",s)}catch{};setSalaries(p=>{const n=[...p,s];LS.s("ssfp_sal",n);return n})};
+  const saveExt=async e=>{try{await sbP("ssfp_ext_exams",e)}catch{};setExtExams(p=>{const n=[...p,e];LS.s("ssfp_ext",n);return n})};
+  const saveLW=async w=>{try{await sbP("ssfp_lesson_weeks",w)}catch{};setLessonWeeks(p=>{const n=[...p,w];LS.s("ssfp_lw",n);return n})};
+  const saveDP=async d=>{try{await sbP("ssfp_direct_pay",d)}catch{};setDirectPay(p=>{const n=[...p,d];LS.s("ssfp_dp",n);return n})};
+  const saveSch=async s=>{try{await sbP("ssfp_scholarships",s)}catch{};setScholarships(p=>{const n=[...p,s];LS.s("ssfp_sch",n);return n})};
   const deleteStudent=useCallback(async(cls,admno,supaId)=>{
-    setStudents(p=>{const n={...p};if(n[cls])n[cls]=n[cls].filter(s=>s.admno!==admno);return n});
+    setStudents(p=>{const n={...p};if(n[cls])n[cls]=n[cls].filter(s=>s.admno!==admno);LS.s("ssfp_students",n);return n});
     if(supaId){try{await sbD("students",`id=eq.${supaId}`)}catch(e){}}
   },[]);
 
+  const wipeData=useCallback(async()=>{
+    localStorage.clear();sessionStorage.clear();
+    const tables=["ssfp_cashbook","ssfp_salaries","ssfp_ext_exams","ssfp_lesson_weeks","ssfp_direct_pay","ssfp_scholarships","ssfp_audit_log","ssfp_notifications"];
+    try{await Promise.all(tables.map(t=>sbD(t,"entry_id=neq.0")));window.location.reload()}catch(e){}
+  },[]);
+
   return <Ctx.Provider value={{
-    session,setSession,dbOk,syncMsg,refreshStudents,
-    students,setStudents,cashBook,setCashBook,
-    categories,setCategories,feeTargets,setFeeTargets,
-    salaries,extExams,lessonWeeks,lessonCur,setLessonCur,
-    termCfg,setTermCfg,directPay,scholarships,
-    auditLog,notifs,setNotifs,schoolProfile,setSchoolProfile,
-    aiConfig,setAiConfig,saveCashEntry,markReversed,
-    addAudit,addNotif,runAIAudit,saveAllSettings,
-    saveSal,saveExt,saveLW,saveDP,saveSch,deleteStudent,
-    dbWriteErr,setDbWriteErr
-  }}>
-    {children}
-  </Ctx.Provider>;
+    session,setSession,dbOk,syncMsg,refreshStudents,students,setStudents,cashBook,setCashBook,
+    categories,setCategories,feeTargets,setFeeTargets,salaries,extExams,lessonWeeks,lessonCur,setLessonCur,
+    termCfg,setTermCfg,directPay,scholarships,auditLog,notifs,setNotifs,schoolProfile,setSchoolProfile,
+    aiConfig,setAiConfig,saveCashEntry,markReversed,addAudit,addNotif,runAIAudit,saveAllSettings,
+    saveSal,saveExt,saveLW,saveDP,saveSch,deleteStudent,wipeData
+  }}>{children}</Ctx.Provider>;
 }
 
 export const useApp = () => useContext(Ctx);
