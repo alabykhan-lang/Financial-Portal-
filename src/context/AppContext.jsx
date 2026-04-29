@@ -144,7 +144,7 @@ export function Prov({ children }) {
   const wipeData=useCallback(async()=>{
     localStorage.clear();sessionStorage.clear();
     const tables=["ssfp_cashbook","ssfp_salaries","ssfp_ext_exams","ssfp_lesson_weeks","ssfp_direct_pay","ssfp_scholarships","ssfp_audit_log","ssfp_notifications"];
-    try{await Promise.all(tables.map(t=>sbD(t,"entry_id=neq.0")));window.location.reload()}catch(e){}
+    try{await Promise.all(tables.map(t=>sbD(t,"entry_id=neq.XYZ999")));window.location.reload()}catch(e){}
   },[]);
 
   return <Ctx.Provider value={{
