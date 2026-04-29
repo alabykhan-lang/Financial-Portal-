@@ -29,11 +29,12 @@ export const sbPA = async (t, q, d) => {
 export const sbU = async (t, d) => {
   const r = await fetch(`${SB}/rest/v1/${t}`, {
     method: "POST",
-    headers: { ...SH, "Prefer": "return=representation,resolution=merge-duplicates" },
+    headers: { ...SH, "Prefer": "resolution=merge-duplicates" },
     body: JSON.stringify(Array.isArray(d) ? d : [d])
   });
   if (!r.ok) throw new Error(await r.text());
-  return r.json();
+  const text = await r.text();
+  return text ? JSON.parse(text) : d;
 };
 
 export const sbD = async (t, q) => {

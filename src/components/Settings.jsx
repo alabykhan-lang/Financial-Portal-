@@ -170,7 +170,10 @@ export default function Settings(){
     </div>
     <div className="card" style={{borderTop:"3px solid var(--red)", marginTop: "20px"}}><div className="sect">⚠️ Danger Zone</div>
       <p className="hint" style={{marginBottom:12}}>Clear all financial entries, audit logs, and salary records across all devices. This action is irreversible. Students registry will be preserved.</p>
-      <button className="btn btn-red btn-sm" onClick={()=>{if(window.confirm("ARE YOU ABSOLUTELY SURE? This will permanently delete all financial records across all devices and reset the app."))ctx.wipeData()}}>WIPE ALL FINANCIAL DATA</button>
+      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+        <button className="btn btn-red btn-sm" onClick={()=>{if(window.confirm("ARE YOU ABSOLUTELY SURE? This will permanently delete all financial records across all devices and reset the app."))ctx.wipeData()}}>WIPE ALL FINANCIAL DATA</button>
+        <button className="btn btn-outline btn-sm" style={{borderColor:"var(--red)",color:"var(--red)"}} onClick={()=>{if(window.confirm("Delete only Cash Book entries? All other settings and records will stay."))ctx.wipeEntries()}}>WIPE ONLY CASH BOOK ENTRIES</button>
+      </div>
     </div>
   </div>
   );
