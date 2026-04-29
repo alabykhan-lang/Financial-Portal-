@@ -1,47 +1,34 @@
-import { SB, SH } from '../constants';
+import { SB, SH } from './constants';
 
-export const sbG = async (t, q = "") => {
+export async function sbG(t, q = "") {
   const r = await fetch(`${SB}/rest/v1/${t}?${q}`, { headers: SH });
-  if (!r.ok) throw new Error(await r.text());
   return r.json();
-};
+}
 
-export const sbP = async (t, d) => {
+export async function sbP(t, d) {
   const r = await fetch(`${SB}/rest/v1/${t}`, {
     method: "POST",
     headers: SH,
-    body: JSON.stringify(Array.isArray(d) ? d : [d])
-  });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
-};
-
-export const sbPA = async (t, q, d) => {
-  const r = await fetch(`${SB}/rest/v1/${t}?${q}`, {
-    method: "PATCH",
-    headers: { ...SH, "Prefer": "return=representation" },
     body: JSON.stringify(d)
   });
-  if (!r.ok) throw new Error(await r.text());
   return r.json();
-};
+}
 
-export const sbU = async (t, d) => {
+export async function sbU(t, d) {
   const r = await fetch(`${SB}/rest/v1/${t}`, {
     method: "POST",
     headers: { ...SH, "Prefer": "resolution=merge-duplicates" },
-    body: JSON.stringify(Array.isArray(d) ? d : [d])
+    body: JSON.stringify(d)
   });
-  if (!r.ok) throw new Error(await r.text());
   const text = await r.text();
   return text ? JSON.parse(text) : d;
-};
+}
 
-export const sbD = async (t, q) => {
+export async function sbPA(t, q, d) {
   const r = await fetch(`${SB}/rest/v1/${t}?${q}`, {
-    method: "DELETE",
-    headers: SH
+    method: "PATCH",
+    headers: SH,
+    body: JSON.stringify(d)
   });
-  if (!r.ok) throw new Error(await r.text());
-  return true;
-};
+  return r.json();
+}
