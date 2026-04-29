@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { sbG, sbU, sbPA } from '../utils/api';
 import { LS, SS } from '../utils/helpers';
-import { DEF_CATS } from '../constants';
+import { DEF_CATS, SK } from '../constants';
 
 const AppCtx = createContext();
 
@@ -197,8 +197,8 @@ export const Prov = ({ children }) => {
         fetch(`https://qbjtiximcchhnxhttogq.supabase.co/rest/v1/${table}?${pk}=neq.0`, {
           method: 'DELETE',
           headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+            'apikey': SK,
+            'Authorization': 'Bearer ' + SK,
             'Content-Type': 'application/json'
           }
         })
@@ -216,8 +216,8 @@ export const Prov = ({ children }) => {
       await fetch(`https://qbjtiximcchhnxhttogq.supabase.co/rest/v1/ssfp_cashbook?entry_id=neq.0`, {
         method: 'DELETE',
         headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+          'apikey': SK,
+          'Authorization': 'Bearer ' + SK,
           'Content-Type': 'application/json'
         }
       });
