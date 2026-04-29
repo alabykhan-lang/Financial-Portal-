@@ -6,7 +6,7 @@ import { checkPropPin, hashPin, uid, today, fmtD, N, LS } from '../utils/helpers
 export default function Settings(){
   const ctx=useApp();
   const isProp=ctx.session?.isProp||ctx.session?.isSuper||false;
-  const[nc,setNc]=setNc=useState("");const[msg,setMsg]=useState(null);const[saving,setSaving]=useState(false);
+  const[nc,setNc]=useState("");const[msg,setMsg]=useState(null);const[saving,setSaving]=useState(false);
   const[localTargets,setLocalTargets]=useState(ctx.feeTargets||{});
   const[localProfile,setLocalProfile]=useState(ctx.schoolProfile||{});
   const[localAI,setLocalAI]=useState(ctx.aiConfig||{});

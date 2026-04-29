@@ -21,6 +21,7 @@ export default function UserMgmt(){
     if(users.find(u=>u.username.toLowerCase()===form.username.trim().toLowerCase())){setMsg({t:1,m:"Username exists."});return}
     
     const hash=await hashPin(form.pin,form.username.trim().toLowerCase());
+    // CRITICAL: created_at removed to match DB schema
     const nu={uid:uid(),name:form.name.trim(),username:form.username.trim().toLowerCase(),role:form.role,section:form.section,pin_hash:hash,is_active:true,last_seen:null,login_count:0};
     
     try{await sbU("ssfp_users",[nu])}catch(e){setMsg({t:1,m:"DB error: "+JSON.stringify(e)});return}
