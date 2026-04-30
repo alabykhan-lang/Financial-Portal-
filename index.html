@@ -280,7 +280,23 @@ const PROP_PIN_KEY="ssfp_prop_pin";
 const PROP_DEFAULT_PIN="246810";
 const SUPER_USER="superadmin";
 const SUPER_PASS="7878";
-function mapKey(ck){if(!ck)return null;const k=ck.toLowerCase().replace(/[\s_]+/g,"-");const M={"creche":"Crèche","crèche":"Crèche","crache":"Crèche","kg1":"KG1","kg-1":"KG1","kg2":"KG2","kg-2":"KG2","nursery1":"Nursery 1","nursery-1":"Nursery 1","nursery2":"Nursery 2","nursery-2":"Nursery 2","primary1":"Primary 1","primary-1":"Primary 1","primary2":"Primary 2","primary-2":"Primary 2","primary3":"Primary 3","primary-3":"Primary 3","primary4":"Primary 4","primary-4":"Primary 4","primary5":"Primary 5","primary-5":"Primary 5","jss1":"JSS1","jss-1":"JSS1","jss2":"JSS2","jss-2":"JSS2","jss3":"JSS3","jss-3":"JSS3","ss1":"SS1","ss-1":"SS1","ss2":"SS2","ss-2":"SS2","ss3":"SS3","ss-3":"SS3"};if(M[k])return M[k];const base=k.replace(/-(science|arts?|commercial|social|tech|general|vocational|basic|a|b|c)(\d*)$/i,"");return M[base]||M[base.replace(/-/g,"")]||null}
+function mapKey(ck){
+  if(!ck)return null;
+  // Normalize: lowercase, remove non-alphanumeric (except basic numbers)
+  const k=String(ck).toLowerCase().replace(/[^a-z0-9]/g,"");
+  const M={
+    "creche":"Crèche","crache":"Crèche","kg1":"KG1","kg2":"KG2","nursery1":"Nursery 1","nursery2":"Nursery 2",
+    "primary1":"Primary 1","primary2":"Primary 2","primary3":"Primary 3","primary4":"Primary 4","primary5":"Primary 5",
+    "basic1":"Primary 1","basic2":"Primary 2","basic3":"Primary 3","basic4":"Primary 4","basic5":"Primary 5",
+    "grade1":"Primary 1","grade2":"Primary 2","grade3":"Primary 3","grade4":"Primary 4","grade5":"Primary 5",
+    "year1":"Primary 1","year2":"Primary 2","year3":"Primary 3","year4":"Primary 4","year5":"Primary 5",
+    "jss1":"JSS1","jss2":"JSS2","jss3":"JSS3","ss1":"SS1","ss2":"SS2","ss3":"SS3"
+  };
+  if(M[k])return M[k];
+  // If not direct match, try partial match (e.g. "primary1a" -> "primary1")
+  for(let key in M){if(k.startsWith(key))return M[key]}
+  return null;
+}
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const today=()=>new Date().toISOString().slice(0,10);
 const fmtD=d=>{if(!d)return"";const s=(d+"").slice(0,10).split("-");return`${s[2]}/${s[1]}/${s[0]}`};
@@ -295,6 +311,7 @@ function Prov({children}){
   const[session,setSessionRaw]=useState(()=>SS.g("ssfp_sess",null));
   const setSession=useCallback((s)=>{setSessionRaw(s);if(s)SS.s("ssfp_sess",s);else{try{sessionStorage.removeItem("ssfp_sess")}catch{}}},[]);
   const[dbOk,setDbOk]=useState(null);const[syncMsg,setSyncMsg]=useState("Connecting…");
+  const[debugInfo,setDebugInfo]=useState(null);
   const[students,setStudents]=useState({});const[cashBook,setCashBook]=useState([]);
   const[categories,setCategories]=useState(()=>LS.g("ssfp_cats",DEF_CATS));
   const[feeTargets,setFeeTargets]=useState(()=>LS.g("ssfp_targets",{}));
@@ -334,26 +351,33 @@ function Prov({children}){
           // Detect column names dynamically from first row
           const sample=raw[0];
           const keys=Object.keys(sample);
-          // name column: name, student_name, fullname, full_name
-          const nameCol=["name","student_name","fullname","full_name","student"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("name"))||"name";
-          // class column: class_key, class, class_name, className
-          const classCol=["class_key","class","class_name","className","student_class"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("class"))||"class_key";
-          // admno column: admno, adm_no, admission_no, admission_number, reg_no
-          const admCol=["admno","adm_no","admission_no","admission_number","reg_no","registration_number"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("adm")||k.toLowerCase().includes("reg"))||"admno";
+          const fNameCol=keys.find(k=>["firstname","first_name","fname"].includes(k.toLowerCase()));
+          const lNameCol=keys.find(k=>["surname","lastname","last_name","lname"].includes(k.toLowerCase()));
+          const nameCol=["name","student_name","fullname","full_name","student"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("name"))||fNameCol||"name";
+          const classCol=["class_key","class","class_name","className","student_class","level","arm","current_class"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("class"))||"class_key";
+          const admCol=["admno","adm_no","admission_no","admission_number","reg_no","registration_number","student_id"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("adm")||k.toLowerCase().includes("reg")||k.toLowerCase().includes("id"))||"admno";
           const genderCol=["gender","sex"].find(k=>keys.includes(k))||"gender";
+          
+          setDebugInfo({keys,detected:{name:nameCol,class:classCol,adm:admCol,splitNames:!!(fNameCol&&lNameCol)}});
           console.log("Students schema detected — name:",nameCol,"class:",classCol,"adm:",admCol);
-          raw.sort((a,b)=>(a[nameCol]||"").localeCompare(b[nameCol]||"")).forEach(s=>{
+          
+          raw.forEach(s=>{
             const cls=mapKey(s[classCol]);if(!cls)return;
             if(!mapped[cls])mapped[cls]=[];
+            let finalName=s[nameCol]||"";
+            if(!finalName&&fNameCol&&lNameCol)finalName=(s[fNameCol]||"")+" "+(s[lNameCol]||"");
             const adm=s[admCol]||("WTS-"+String(s.id||"").slice(0,6).toUpperCase());
-            if(!mapped[cls].find(x=>x.admno===adm&&x.name===s[nameCol]))
-              mapped[cls].push({name:s[nameCol]||"",admno:adm,gender:s[genderCol]||"",supaId:s.id,payments:[],arrears:0});
+            if(!mapped[cls].find(x=>x.admno===adm&&x.name===finalName))
+              mapped[cls].push({name:finalName||"",admno:adm,gender:s[genderCol]||"",supaId:s.id,payments:[],arrears:0});
           });
+          mapped._sorted=true; // flag for client-side sorting below
         }
       }catch(se){
         console.warn("Students table load failed:",se.message);
         const cached=LS.g("ssfp_students",{});Object.assign(mapped,cached);
       }
+      // Sort each class list by name
+      Object.keys(mapped).forEach(cls=>{if(Array.isArray(mapped[cls]))mapped[cls].sort((a,b)=>a.name.localeCompare(b.name))});
       // DB is the SINGLE source of truth. Always read from DB. localStorage is only a write-through cache.
       try{const r=await sbG("ssfp_settings","key=eq.main&limit=1");if(r&&r[0])cfg=r[0].value}catch(se){console.warn("Settings fetch:",se)}
       if(cfg){
@@ -476,17 +500,23 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
       const mapped={};
       if(raw.length>0){
         const keys=Object.keys(raw[0]);
-        const nameCol=["name","student_name","fullname","full_name","student"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("name"))||"name";
-        const classCol=["class_key","class","class_name","className","student_class"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("class"))||"class_key";
-        const admCol=["admno","adm_no","admission_no","admission_number","reg_no","registration_number"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("adm")||k.toLowerCase().includes("reg"))||"admno";
+        const fNameCol=keys.find(k=>["firstname","first_name","fname"].includes(k.toLowerCase()));
+        const lNameCol=keys.find(k=>["surname","lastname","last_name","lname"].includes(k.toLowerCase()));
+        const nameCol=["name","student_name","fullname","full_name","student"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("name"))||fNameCol||"name";
+        const classCol=["class_key","class","class_name","className","student_class","level","arm","current_class"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("class"))||"class_key";
+        const admCol=["admno","adm_no","admission_no","admission_number","reg_no","registration_number","student_id"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("adm")||k.toLowerCase().includes("reg")||k.toLowerCase().includes("id"))||"admno";
         const genderCol=["gender","sex"].find(k=>keys.includes(k))||"gender";
-        raw.sort((a,b)=>(a[nameCol]||"").localeCompare(b[nameCol]||"")).forEach(s=>{
+        
+        raw.forEach(s=>{
           const cls=mapKey(s[classCol]);if(!cls)return;
           if(!mapped[cls])mapped[cls]=[];
+          let finalName=s[nameCol]||"";
+          if(!finalName&&fNameCol&&lNameCol)finalName=(s[fNameCol]||"")+" "+(s[lNameCol]||"");
           const adm=s[admCol]||("WTS-"+String(s.id||"").slice(0,6).toUpperCase());
-          if(!mapped[cls].find(x=>x.admno===adm&&x.name===s[nameCol]))
-            mapped[cls].push({name:s[nameCol]||"",admno:adm,gender:s[genderCol]||"",supaId:s.id,payments:[],arrears:0});
+          if(!mapped[cls].find(x=>x.admno===adm&&x.name===finalName))
+            mapped[cls].push({name:finalName||"",admno:adm,gender:s[genderCol]||"",supaId:s.id,payments:[],arrears:0});
         });
+        Object.keys(mapped).forEach(cls=>{if(Array.isArray(mapped[cls]))mapped[cls].sort((a,b)=>a.name.localeCompare(b.name))});
       }
       (cashBook||[]).filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{if(!mapped[e.class_name])return;const si=mapped[e.class_name].findIndex(s=>s.name===e.student);if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:e.amount,mode:e.mode,isPriorTerm:e.is_prior_term||false,timestamp:e.timestamp})});
       setStudents(mapped);setDbOk(true);setSyncMsg(`Synced — ${raw.length} students`);
@@ -598,6 +628,7 @@ function AuthGate(){
 function DebtList({sec}){
   const{getDebtList}=useApp();const[s,setS]=useState(sec||"A");const list=getDebtList(s);const total=list.reduce((sum,x)=>sum+x.owed,0);
   return<div className="fu">
+
     <div className="fb" style={{marginBottom:14}}><h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)"}}>Consolidated Arrears (Debt) List</h2><button className="btn btn-gold btn-sm np" onClick={()=>window.print()}>🖨 Print Report</button></div>
     <div className="stg np" style={{marginBottom:14}}><button className={"stb"+(s==="A"?" a":"")} onClick={()=>setS("A")}>Section A</button><button className={"stb"+(s==="B"?" a":"")} onClick={()=>setS("B")}>Section B</button><button className={"stb"+(s===null?" a":"")} onClick={()=>setS(null)}>All Sections</button></div>
     <div className="kg" style={{marginBottom:14}}><div className="kpi" style={{"--accent":"var(--red)"}}><div className="kl">Total Outstanding Arrears</div><div className="kv" style={{color:"var(--red)"}}>{N(total)}</div><div className="ksub">{list.length} students across Section {s||"A+B"}</div></div></div>
@@ -1256,6 +1287,8 @@ function Lessons({sec}){
 function Dash({sec}){
   const ctx=useApp();
   const isAdmin=ctx.session?.role==="admin"||ctx.session?.role==="superadmin";
+  const sTotal=Object.values(ctx.students).reduce((a,b)=>a+b.length,0);
+  const[showDebug,setShowDebug]=useState(false);
   // Section-filtered entries; admin can see all or per section
   const allE=ctx.cashBook||[];
   const ae=sec?allE.filter(e=>e.section===sec):allE;
@@ -1266,6 +1299,21 @@ function Dash({sec}){
   const catBk={};ae.filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{catBk[e.category]=(catBk[e.category]||0)+e.amount});
   const cStats=secClasses.map(c=>{const st=ctx.students[c]||[];const tp=st.reduce((s,x)=>(x.payments||[]).filter(p=>p.amount>0).reduce((ps,p)=>ps+p.amount,0)+s,0);return{c,n:st.length,tp}}).filter(x=>x.n>0);
   return<div className="fu">
+    {sTotal===0 && ctx.debugInfo && (
+      <div style={{background:"#fff3cd",padding:"1rem",borderRadius:"12px",marginBottom:"1.5rem",border:"1px solid #ffeeba",color:"#856404",fontSize:"0.9rem"}}>
+        <p><strong>Sync Alert:</strong> 0 students loaded from database. This might be a schema mismatch.</p>
+        <button onClick={()=>setShowDebug(!showDebug)} style={{background:"#856404",color:"white",border:"none",padding:"5px 10px",borderRadius:"4px",marginTop:"10px",cursor:"pointer"}}>
+          {showDebug?"Hide Debug Info":"Show Debug Info"}
+        </button>
+        {showDebug && (
+          <div style={{marginTop:"1rem",background:"white",padding:"1rem",borderRadius:"8px",border:"1px solid #ddd",fontFamily:"monospace",fontSize:"0.8rem",overflowX:"auto"}}>
+            <p>Found Columns: {ctx.debugInfo.keys.join(", ")}</p>
+            <p>Detected Schema: {JSON.stringify(ctx.debugInfo.detected)}</p>
+            <p style={{marginTop:"0.5rem",color:"#666"}}>Tip: If "class" is not matching, check if your database column for class is in the list above.</p>
+          </div>
+        )}
+      </div>
+    )}
     <div className="fb" style={{marginBottom:14}}>
       <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)"}}>Dashboard — Section {sec||"All"}</h2>
     </div>
