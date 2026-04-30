@@ -312,6 +312,7 @@ function Prov({children}){
   const setSession=useCallback((s)=>{setSessionRaw(s);if(s)SS.s("ssfp_sess",s);else{try{sessionStorage.removeItem("ssfp_sess")}catch{}}},[]);
   const[dbOk,setDbOk]=useState(null);const[syncMsg,setSyncMsg]=useState("Connecting…");
   const[debugInfo,setDebugInfo]=useState(null);
+  const[fetchErr,setFetchErr]=useState(null);
   const[students,setStudents]=useState({});const[cashBook,setCashBook]=useState([]);
   const[categories,setCategories]=useState(()=>LS.g("ssfp_cats",DEF_CATS));
   const[feeTargets,setFeeTargets]=useState(()=>LS.g("ssfp_targets",{}));
@@ -325,7 +326,7 @@ function Prov({children}){
   const[aiConfig,setAiConfig]=useState(()=>LS.g("ssfp_ai",{apiKey:"",model:"google/gemini-2.0-flash-001"}));
   useEffect(()=>{(async()=>{
     // Each section loads independently — one failure never kills the whole app
-    const tryG=async(t,q)=>{try{return await sbG(t,q)}catch(e){console.warn("Load failed:",t,e.message);return[]}};
+    const tryG=async(t,q)=>{try{setFetchErr(null);return await sbG(t,q)}catch(e){console.warn("Load failed:",t,e.message);setFetchErr(e.message);return[]}};
     try{
       setSyncMsg("Connecting to database…");
       // Step 1: Load SSFP tables first — these are the critical tables
@@ -498,10 +499,28 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
     return()=>clearInterval(interval);
   },[cashBook,addNotif,aiConfig]);
   const refreshStudents=useCallback(async()=>{
-    setSyncMsg("Syncing…");setDbOk(null);
+    setSyncMsg("Syncing…");setDbOk(null);setFetchErr(null);
     try{
-      const tName = LS.g("ssfp_student_table", "students");
-      const raw=await sbG(tName,"select=*&limit=3000");
+      let tName = LS.g("ssfp_student_table", "students");
+      let raw=await sbG(tName,"select=*&limit=3000");
+      
+      // Auto-scan common names if primary table is empty
+      if (raw.length === 0) {
+        const common = ["Student", "profiles", "student_info", "student_records", "student_data", "records", "biodata", "student_biodata", "registration", "enrollment", "Student_Profiles"];
+        for (const t of common) {
+          try {
+            const test = await sbG(t, "select=*&limit=1");
+            if (test.length > 0) {
+              tName = t;
+              LS.s("ssfp_student_table", t);
+              raw = await sbG(t, "select=*&limit=3000");
+              setFetchErr(null);
+              break;
+            }
+          } catch(e) {}
+        }
+      }
+
       const mapped={};
       if(raw.length>0){
         const smpl = raw[0];
@@ -528,7 +547,7 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
       }
       (cashBook||[]).filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{if(!mapped[e.class_name])return;const si=mapped[e.class_name].findIndex(s=>s.name===e.student);if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:e.amount,mode:e.mode,isPriorTerm:e.is_prior_term||false,timestamp:e.timestamp})});
       setStudents(mapped);setDbOk(true);setSyncMsg(`Synced — ${raw.length} students`);
-    }catch(e){setDbOk(false);setSyncMsg("Sync failed")}
+    }catch(e){setFetchErr(e.message);setDbOk(false);setSyncMsg(`Sync failed: ${e.message}`)}
   },[cashBook]);
   useEffect(()=>{
     window.addEventListener("focus",refreshStudents);
@@ -549,7 +568,7 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
   },[]);
   const wipeData=useCallback(async()=>{if(!window.confirm("CRITICAL: Wipe all transaction data? This clears Cash Book, Audit Logs, and Notifications. Students and settings remain."))return false;if(!window.confirm("FINAL WARNING: Are you absolutely sure? This cannot be undone."))return false;try{await Promise.all([sbD("ssfp_cashbook","entry_id=not.is.null"),sbD("ssfp_audit_log","aid=not.is.null"),sbD("ssfp_notifications","nid=not.is.null")]);setCashBook([]);setAuditLog([]);setNotifs([]);setStudents(p=>{const n={...p};Object.keys(n).forEach(k=>{n[k]=n[k].map(s=>({...s,payments:[]}))});LS.s("ssfp_students",n);return n});return true}catch(e){alert("Wipe failed: "+e.message);return false}},[]);
   const getDebtList=useCallback((section=null)=>{const list=[];const classes=section==="A"?SEC_A:section==="B"?SEC_B:ALL_CLS;classes.forEach(c=>{const stus=students[c]||[];const targets=feeTargets[c]||{};const active=categories.filter(cat=>termCfg?.activeCats?.[cat]!==false);stus.forEach(s=>{const catPaid={};(s.payments||[]).forEach(p=>{catPaid[p.category]=(catPaid[p.category]||0)+p.amount});let totalOwed=0;let totalPaid=0;active.forEach(cat=>{const t=targets[cat]||0;const p=catPaid[cat]||0;totalPaid+=p;if(t>0)totalOwed+=Math.max(0,t-p)});if(totalOwed>0)list.push({name:s.name,class:c,paid:totalPaid,owed:totalOwed,admno:s.admno})})});return list.sort((a,b)=>b.owed-a.owed)},[students,feeTargets,categories,termCfg]);
-  return <Ctx.Provider value={{session,setSession,dbOk,setDbOk,syncMsg,setSyncMsg,debugInfo,setDebugInfo,students,setStudents,cashBook,setCashBook,categories,setCategories,feeTargets,setFeeTargets,salaries,setSalaries,extExams,setExtExams,lessonWeeks,setLessonWeeks,lessonCur,setLessonCur,termCfg,setTermCfg,directPay,setDirectPay,scholarships,setScholarships,auditLog,setAuditLog,notifs,setNotifs,schoolProfile,setSchoolProfile,aiConfig,setAiConfig,saveAllSettings,saveCashEntry,markReversed,addAudit,addNotif,runAIAudit,refreshStudents,dbWriteErr,setDbWriteErr,saveSal,saveExt,saveLW,saveDP,saveSch,saveStudent,deleteStudent,wipeData,getDebtList}}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{session,setSession,dbOk,setDbOk,syncMsg,setSyncMsg,debugInfo,setDebugInfo,fetchErr,setFetchErr,students,setStudents,cashBook,setCashBook,categories,setCategories,feeTargets,setFeeTargets,salaries,setSalaries,extExams,setExtExams,lessonWeeks,setLessonWeeks,lessonCur,setLessonCur,termCfg,setTermCfg,directPay,setDirectPay,scholarships,setScholarships,auditLog,setAuditLog,notifs,setNotifs,schoolProfile,setSchoolProfile,aiConfig,setAiConfig,saveAllSettings,saveCashEntry,markReversed,addAudit,addNotif,runAIAudit,refreshStudents,dbWriteErr,setDbWriteErr,saveSal,saveExt,saveLW,saveDP,saveSch,saveStudent,deleteStudent,wipeData,getDebtList}}>{children}</Ctx.Provider>;
 }
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
@@ -757,7 +776,7 @@ function Portal(){
         return (
           <div style={{background:"#fff3cd",padding:"12px 20px",borderBottom:"1px solid #ffeeba",color:"#856404",fontSize:0.82+"rem",display:"flex",flexDirection:"column",gap:8}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
-              <span><strong>Sync Alert:</strong> 0 students found in table "{customTable}".</span>
+              <span><strong>Sync Alert:</strong> {ctx.fetchErr ? <span style={{color:"var(--red)"}}>Error: {ctx.fetchErr}</span> : `0 students found in table "${customTable}".`}</span>
               <div style={{display:"flex",gap:6,alignItems:"center"}}>
                 <input 
                   value={customTable} 
@@ -775,7 +794,15 @@ function Portal(){
                 <div>Detected: {JSON.stringify(ctx.debugInfo.detected)}</div>
               </div>
             )}
-            {!ctx.debugInfo && <div style={{fontSize:0.75+"rem",opacity:0.8}}>The database returned 0 rows for "{customTable}". Try "Student", "profiles", or "student_info" if you have a different table in Supabase.</div>}
+            {!ctx.debugInfo && (
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:5}}>
+                <div style={{fontSize:0.75+"rem",opacity:0.8}}>No data found in table "{customTable}".</div>
+                <button onClick={async()=>{
+                  ctx.setSyncMsg("Auto-scanning tables...");
+                  await ctx.refreshStudents();
+                }} style={{background:"var(--gold)",color:"var(--navy)",border:"none",padding:"4px 12px",borderRadius:4,cursor:"pointer",fontSize:0.7+"rem",fontWeight:700}}>✨ SMART SCAN DATABASE</button>
+              </div>
+            )}
           </div>
         );
       })()}
