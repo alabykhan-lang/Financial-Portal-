@@ -346,8 +346,12 @@ function Prov({children}){
       const mapped={};
       try{
         // Fetch all rows — auto-detect whatever schema the result portal uses
-        raw=await sbG("students","select=*&limit=3000");
+        const tName = LS.g("ssfp_student_table", "students");
+        raw=await sbG(tName,"select=*&limit=3000");
         if(raw.length>0){
+          const smpl = raw[0];
+          const ks = Object.keys(smpl);
+          setDebugInfo({keys:ks, detected:{nameCol:ks.find(k=>["name","student_name","fullname","full_name","student"].find(kk=>k.toLowerCase().includes(kk))), classCol:ks.find(k=>["class","level","arm"].find(kk=>k.toLowerCase().includes(kk)))}});
           // Detect column names dynamically from first row
           const sample=raw[0];
           const keys=Object.keys(sample);
@@ -496,9 +500,13 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
   const refreshStudents=useCallback(async()=>{
     setSyncMsg("Syncing…");setDbOk(null);
     try{
-      const raw=await sbG("students","select=*&limit=3000");
+      const tName = LS.g("ssfp_student_table", "students");
+      const raw=await sbG(tName,"select=*&limit=3000");
       const mapped={};
       if(raw.length>0){
+        const smpl = raw[0];
+        const ks = Object.keys(smpl);
+        setDebugInfo({keys:ks, detected:{nameCol:ks.find(k=>["name","student_name","fullname","full_name","student"].find(kk=>k.toLowerCase().includes(kk))), classCol:ks.find(k=>["class","level","arm"].find(kk=>k.toLowerCase().includes(kk)))}});
         const keys=Object.keys(raw[0]);
         const fNameCol=keys.find(k=>["firstname","first_name","fname"].includes(k.toLowerCase()));
         const lNameCol=keys.find(k=>["surname","lastname","last_name","lname"].includes(k.toLowerCase()));
@@ -541,7 +549,7 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
   },[]);
   const wipeData=useCallback(async()=>{if(!window.confirm("CRITICAL: Wipe all transaction data? This clears Cash Book, Audit Logs, and Notifications. Students and settings remain."))return false;if(!window.confirm("FINAL WARNING: Are you absolutely sure? This cannot be undone."))return false;try{await Promise.all([sbD("ssfp_cashbook","entry_id=not.is.null"),sbD("ssfp_audit_log","aid=not.is.null"),sbD("ssfp_notifications","nid=not.is.null")]);setCashBook([]);setAuditLog([]);setNotifs([]);setStudents(p=>{const n={...p};Object.keys(n).forEach(k=>{n[k]=n[k].map(s=>({...s,payments:[]}))});LS.s("ssfp_students",n);return n});return true}catch(e){alert("Wipe failed: "+e.message);return false}},[]);
   const getDebtList=useCallback((section=null)=>{const list=[];const classes=section==="A"?SEC_A:section==="B"?SEC_B:ALL_CLS;classes.forEach(c=>{const stus=students[c]||[];const targets=feeTargets[c]||{};const active=categories.filter(cat=>termCfg?.activeCats?.[cat]!==false);stus.forEach(s=>{const catPaid={};(s.payments||[]).forEach(p=>{catPaid[p.category]=(catPaid[p.category]||0)+p.amount});let totalOwed=0;let totalPaid=0;active.forEach(cat=>{const t=targets[cat]||0;const p=catPaid[cat]||0;totalPaid+=p;if(t>0)totalOwed+=Math.max(0,t-p)});if(totalOwed>0)list.push({name:s.name,class:c,paid:totalPaid,owed:totalOwed,admno:s.admno})})});return list.sort((a,b)=>b.owed-a.owed)},[students,feeTargets,categories,termCfg]);
-  return<Ctx.Provider value={{session,setSession,dbOk,syncMsg,refreshStudents,students,setStudents,cashBook,setCashBook,categories,setCategories,feeTargets,setFeeTargets,salaries,extExams,lessonWeeks,lessonCur,setLessonCur,termCfg,setTermCfg,directPay,scholarships,auditLog,notifs,setNotifs,schoolProfile,setSchoolProfile,aiConfig,setAiConfig,saveCashEntry,markReversed,addAudit,addNotif,runAIAudit,saveAllSettings,saveSal,saveExt,saveLW,saveDP,saveSch,saveStudent,deleteStudent,wipeData,getDebtList}}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{session,setSession,dbOk,setDbOk,syncMsg,setSyncMsg,debugInfo,setDebugInfo,students,setStudents,cashBook,setCashBook,categories,setCategories,feeTargets,setFeeTargets,salaries,setSalaries,extExams,setExtExams,lessonWeeks,setLessonWeeks,lessonCur,setLessonCur,termCfg,setTermCfg,directPay,setDirectPay,scholarships,setScholarships,auditLog,setAuditLog,notifs,setNotifs,schoolProfile,setSchoolProfile,aiConfig,setAiConfig,saveAllSettings,saveCashEntry,markReversed,addAudit,addNotif,runAIAudit,refreshStudents,dbWriteErr,setDbWriteErr,saveSal,saveExt,saveLW,saveDP,saveSch,saveStudent,deleteStudent,wipeData,getDebtList}}>{children}</Ctx.Provider>;
 }
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
@@ -736,20 +744,38 @@ function Portal(){
       {(() => {
         const sTotal=Object.values(ctx.students).reduce((a,b)=>a+b.length,0);
         const [showD, setShowD] = useState(false);
+        const [customTable, setCustomTable] = useState(() => LS.g("ssfp_student_table", "students"));
+        
         if (sTotal > 0 || !isAdmin) return null;
+        
+        const tryTable = async () => {
+          LS.s("ssfp_student_table", customTable);
+          ctx.setSyncMsg("Retrying with " + customTable + "...");
+          await ctx.refreshStudents();
+        };
+
         return (
-          <div style={{background:"#fff3cd",padding:"12px 20px",borderBottom:"1px solid #ffeeba",color:"#856404",fontSize:".82rem",display:"flex",flexDirection:"column",gap:8}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span><strong>Sync Alert:</strong> 0 students found. This usually means a database connection issue or a schema mismatch.</span>
-              {ctx.debugInfo && <button onClick={()=>setShowD(!showD)} style={{background:"#856404",color:"#fff",border:"none",padding:"4px 10px",borderRadius:4,cursor:"pointer",fontSize:".7rem"}}>{showD?"Hide Info":"Show Debug Info"}</button>}
+          <div style={{background:"#fff3cd",padding:"12px 20px",borderBottom:"1px solid #ffeeba",color:"#856404",fontSize:0.82+"rem",display:"flex",flexDirection:"column",gap:8}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+              <span><strong>Sync Alert:</strong> 0 students found in table "{customTable}".</span>
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <input 
+                  value={customTable} 
+                  onChange={e=>setCustomTable(e.target.value)} 
+                  placeholder="Table Name"
+                  style={{padding:"4px 8px",borderRadius:4,border:"1px solid #ccc",fontSize:0.75+"rem",width:120}}
+                />
+                <button onClick={tryTable} style={{background:"var(--navy)",color:"#fff",border:"none",padding:"4px 10px",borderRadius:4,cursor:"pointer",fontSize:0.7+"rem"}}>Try This Table</button>
+                {ctx.debugInfo && <button onClick={()=>setShowD(!showD)} style={{background:"#856404",color:"#fff",border:"none",padding:"4px 10px",borderRadius:4,cursor:"pointer",fontSize:0.7+"rem"}}>{showD?"Hide Info":"Show Debug Info"}</button>}
+              </div>
             </div>
             {showD && ctx.debugInfo && (
-              <div style={{background:"#fff",padding:10,borderRadius:6,border:"1px solid #ddd",fontFamily:"monospace",fontSize:".72rem",marginTop:5}}>
+              <div style={{background:"#fff",padding:10,borderRadius:6,border:"1px solid #ddd",fontFamily:"monospace",fontSize:0.72+"rem",marginTop:5}}>
                 <div>Columns: {ctx.debugInfo.keys.join(", ")}</div>
                 <div>Detected: {JSON.stringify(ctx.debugInfo.detected)}</div>
               </div>
             )}
-            {!ctx.debugInfo && <div style={{fontSize:".75rem",opacity:0.8}}>The database returned 0 rows. Please check if the "students" table has data in Supabase.</div>}
+            {!ctx.debugInfo && <div style={{fontSize:0.75+"rem",opacity:0.8}}>The database returned 0 rows for "{customTable}". Try "Student", "profiles", or "student_info" if you have a different table in Supabase.</div>}
           </div>
         );
       })()}
