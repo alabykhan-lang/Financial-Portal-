@@ -1,32 +1,35 @@
-# Financial Portal - Standard Schools
+# Way to Success Standard School — Finance Portal
 
-A modular, high-performance financial management and educational portal built with React 18, Vite 5, and Supabase.
+A professional, single-file financial management application built with React and Supabase. Designed for high performance, reliability, and security in educational environments.
 
 ## 🚀 Key Features
-- **Core Dashboard**: Real-time financial overview and system status.
-- **Financial Management**: Daily Cash Book, Student Ledgers, Payment Analysis, Accounting, and Salaries.
-- **Educational Management**: Class Portal, Lesson Management, and External Exam tracking.
-- **Admin Suite**: Advanced user management and system settings.
-- **AI Integration**: Built-in AI Audit and Anomaly Detection for financial records.
 
-## 📁 Project Structure
-The codebase follows a modular architecture:
-- `src/components/core`: Application entry points, authentication, and layout components.
-- `src/components/finance`: All financial processing modules.
-- `src/components/edu`: Educational management and class tracking.
-- `src/components/admin`: Administrative and system-wide settings.
-- `src/context`: Centralized state management via `AppContext`.
-- `src/utils`: API wrappers and helper functions for Supabase integration.
+*   **Real-time Synchronization**: Seamless integration with Supabase for cloud data storage.
+*   **Offline Resilience**: Robust `localStorage` caching ensures the app remains functional even during internet outages.
+*   **Financial Integrity**: Native support for transaction reversals, automated audit logs, and anomaly detection.
+*   **Administrative Security**:
+    *   Secure PIN-based authentication.
+    *   Hidden configuration menus with secret-trigger access.
+    *   Full database export/backup capability.
+*   **Comprehensive Reporting**:
+    *   Daily Cash Book with income/expense tracking.
+    *   Automated Student Ledgers.
+    *   Class-based payment analysis.
+    *   Consolidated Debt (Arrears) reporting.
 
-## 🛠 Tech Stack
-- **Frontend**: React 18
-- **Build Tool**: Vite 5
-- **Backend**: Supabase (PostgreSQL + RLS)
-- **Styling**: Vanilla CSS with a Navy/Gold design system.
+## 🛠 Technology Stack
+
+*   **Frontend**: React 18, Babel (Standalone), Vanilla CSS.
+*   **Backend**: Supabase (REST API).
+*   **Fonts**: Inter, Playfair Display, JetBrains Mono via Google Fonts.
 
 ## 📦 Deployment
-This project is configured for seamless deployment on **Vercel**. 
-Ensure the following Environment Variables are set:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- `VITE_OPENROUTER_API_KEY` (for AI features)
+
+This project is optimized for **Vercel** and **GitHub Pages**.
+
+1.  Push this repository to GitHub.
+2.  Connect the repository to Vercel.
+3.  Vercel will automatically serve `index.html` as the entry point.
+
+---
+*Developed for Way to Success Standard Schools, Ejigbo.*
