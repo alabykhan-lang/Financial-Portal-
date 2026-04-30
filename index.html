@@ -191,8 +191,11 @@ tr.rvr td{background:#fffbf0}
 .sb-nm{font-family:var(--ff-d);font-size:.82rem;color:#fff;font-weight:700;line-height:1.25}
 .sb-tg{font-size:.56rem;color:rgba(255,255,255,.38);letter-spacing:.5px;margin-top:1px;text-transform:uppercase}
 .sb-rp{display:inline-block;font-size:.58rem;font-weight:700;padding:2px 9px;border-radius:10px;background:rgba(201,168,76,.14);color:var(--gold);border:1px solid rgba(201,168,76,.28);letter-spacing:.5px;text-transform:uppercase;margin-top:6px}
-.sb-nav{flex:1;overflow-y:auto;padding:8px 0}
-.sb-nav::-webkit-scrollbar{width:0}
+.sb-nav{flex:1;overflow-y:auto;padding:8px 0;min-height:0}
+.sb-nav::-webkit-scrollbar{width:5px}
+.sb-nav::-webkit-scrollbar-track{background:rgba(255,255,255,.05)}
+.sb-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:10px}
+.sb-nav::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.2)}
 .sb-lbl{font-size:.58rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.22);padding:10px 16px 4px}
 .ni2{display:flex;align-items:center;gap:10px;padding:10px 16px;color:rgba(255,255,255,.52);cursor:pointer;transition:all .15s;font-size:.88rem;font-weight:500;border-left:3px solid transparent;user-select:none}
 .ni2:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
@@ -484,6 +487,21 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
   const getDebtList=useCallback((section=null)=>{const list=[];const classes=section==="A"?SEC_A:section==="B"?SEC_B:ALL_CLS;classes.forEach(c=>{const stus=students[c]||[];const targets=feeTargets[c]||{};const active=categories.filter(cat=>termCfg?.activeCats?.[cat]!==false);stus.forEach(s=>{const catPaid={};(s.payments||[]).forEach(p=>{catPaid[p.category]=(catPaid[p.category]||0)+p.amount});let totalOwed=0;let totalPaid=0;active.forEach(cat=>{const t=targets[cat]||0;const p=catPaid[cat]||0;totalPaid+=p;if(t>0)totalOwed+=Math.max(0,t-p)});if(totalOwed>0)list.push({name:s.name,class:c,paid:totalPaid,owed:totalOwed,admno:s.admno})})});return list.sort((a,b)=>b.owed-a.owed)},[students,feeTargets,categories,termCfg]);
   return<Ctx.Provider value={{session,setSession,dbOk,syncMsg,refreshStudents,students,setStudents,cashBook,setCashBook,categories,setCategories,feeTargets,setFeeTargets,salaries,extExams,lessonWeeks,lessonCur,setLessonCur,termCfg,setTermCfg,directPay,scholarships,auditLog,notifs,setNotifs,schoolProfile,setSchoolProfile,aiConfig,setAiConfig,saveCashEntry,markReversed,addAudit,addNotif,runAIAudit,saveAllSettings,saveSal,saveExt,saveLW,saveDP,saveSch,deleteStudent,wipeData,getDebtList}}>{children}</Ctx.Provider>;
 }
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, errorInfo) { console.error("EB Catch:", error, errorInfo); }
+  render() {
+    if (this.state.hasError) {
+      return <div style={{padding:40,background:"#fef2f2",color:"#991b1b",borderRadius:12,margin:20,border:"1px solid #fee2e2"}}>
+        <h2 style={{fontSize:"1.2rem",marginBottom:10}}>Something went wrong</h2>
+        <pre style={{fontSize:".75rem",whiteSpace:"pre-wrap",background:"#fff",padding:15,borderRadius:6,border:"1px solid #fecaca",maxHeight:300,overflow:"auto"}}>{this.state.error?.stack || String(this.state.error)}</pre>
+        <button onClick={()=>window.location.reload()} style={{marginTop:15,padding:"8px 16px",background:"#991b1b",color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}}>Reload Application</button>
+      </div>;
+    }
+    return this.props.children;
+  }
+}
 const useApp=()=>useContext(Ctx);
 function App(){const{session,dbOk}=useApp();if(dbOk===null)return<Splash/>;if(!session)return<AuthGate/>;return<Portal/>;}
 function Splash(){return<div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"var(--navy)"}}>
@@ -647,19 +665,21 @@ function Portal(){
         <button onClick={()=>setDbWriteErr(null)} style={{background:"rgba(255,255,255,.2)",border:"none",color:"#fff",borderRadius:4,padding:"3px 10px",cursor:"pointer",fontSize:".76rem"}}>✕</button>
       </div>}
       <main className="pc">
-        {tab==="home"&&<HomePage sec={effSec} setTab={setTab}/>}
-        {tab==="cashbook"&&<CashBook sec={effSec}/>}
-        {tab==="classes"&&<ClassPortal sec={effSec}/>}
-        {tab==="ledgers"&&<Ledgers sec={effSec}/>}
-        {tab==="analysis"&&<Analysis sec={effSec}/>}
-        {tab==="debt"&&isAdmin&&<DebtList sec={effSec}/>}
-        {tab==="lessons"&&<Lessons sec={effSec}/>}
-        {tab==="dash"&&isAdmin&&<Dash sec={effSec}/>}
-        {tab==="acct"&&isAdmin&&<Acct/>}
-        {tab==="sal"&&isAdmin&&<Sal/>}
-        {tab==="exam"&&isAdmin&&<ExamPortal/>}
-        {tab==="users"&&isAdmin&&<UserMgmt/>}
-        {tab==="set"&&isAdmin&&<Settings/>}
+        <ErrorBoundary key={tab}>
+          {tab==="home"&&<HomePage sec={effSec} setTab={setTab}/>}
+          {tab==="cashbook"&&<CashBook sec={effSec}/>}
+          {tab==="classes"&&<ClassPortal sec={effSec}/>}
+          {tab==="ledgers"&&<Ledgers sec={effSec}/>}
+          {tab==="analysis"&&<Analysis sec={effSec}/>}
+          {tab==="debt"&&isAdmin&&<DebtList sec={effSec}/>}
+          {tab==="lessons"&&<Lessons sec={effSec}/>}
+          {tab==="dash"&&isAdmin&&<Dash sec={effSec}/>}
+          {tab==="acct"&&isAdmin&&<Acct/>}
+          {tab==="sal"&&isAdmin&&<Sal/>}
+          {tab==="exam"&&isAdmin&&<ExamPortal/>}
+          {tab==="users"&&isAdmin&&<UserMgmt/>}
+          {tab==="set"&&isAdmin&&<Settings/>}
+        </ErrorBoundary>
       </main>
     </div>
   </div>;
@@ -822,13 +842,13 @@ function CashBook({sec}){
         </div>
         {isExpense?<>
           <div className="fl" style={{gridColumn:"span 2"}}><span className="flb">What is this expense for?</span><input value={desc} onChange={e=>setDesc(e.target.value)} className="inp" placeholder="e.g. chalk, fuel, stationery, drawings (proprietor withdrawal)…"/></div>
-          <div className="fl"><span className="flb">Amount (\u20A6)</span><input type="number" min="0" step=".01" value={amt} onChange={e=>setAmt(e.target.value)} className="inpm" placeholder="0.00"/></div>
+          <div className="fl"><span className="flb">Amount ({'\u20A6'})</span><input type="number" min="0" step=".01" value={amt} onChange={e=>setAmt(e.target.value)} className="inpm" placeholder="0.00"/></div>
           <div className="fl"><span className="flb">Payment Mode</span><select value={mode} onChange={e=>setMode(e.target.value)} className="sel">{PAY_MODES.map(m=><option key={m}>{m}</option>)}</select></div>
         </>:<>
           <div className="fl"><span className="flb">Class</span><select value={cl} onChange={e=>{setCl(e.target.value);setStu("")}} className="sel"><option value="">— Select class —</option>{classes.map(c=><option key={c}>{c}</option>)}</select></div>
           <div className="fl"><span className="flb">Student</span><select value={stu} onChange={e=>setStu(e.target.value)} className="sel" disabled={!cl}><option value="">— Select student —</option>{stuList.map(n=><option key={n}>{n}</option>)}</select>{cl&&stuList.length===0&&<span className="hint">No students — sync or import via Class Portal</span>}</div>
           <div className="fl"><span className="flb">Fee Category</span><select value={cat} onChange={e=>setCat(e.target.value)} className="sel"><option value="">— Select category —</option>{activeCats.map(c=><option key={c}>{c}</option>)}</select></div>
-          <div className="fl"><span className="flb">Amount (\u20A6)</span><input type="number" min="0" step=".01" value={amt} onChange={e=>setAmt(e.target.value)} className="inpm" placeholder="0.00"/></div>
+          <div className="fl"><span className="flb">Amount ({'\u20A6'})</span><input type="number" min="0" step=".01" value={amt} onChange={e=>setAmt(e.target.value)} className="inpm" placeholder="0.00"/></div>
           <div className="fl"><span className="flb">Payment Mode</span><select value={mode} onChange={e=>setMode(e.target.value)} className="sel">{PAY_MODES.map(m=><option key={m}>{m}</option>)}</select></div>
         </>}
       </div>
@@ -1015,7 +1035,7 @@ function ReceiptDoc({viewRcp,sec,sp,bSig,adminSig,ctx}){
         <th style={{padding:"8px 10px",textAlign:"left",fontSize:".68rem",letterSpacing:.5}}>DATE</th>
         <th style={{padding:"8px 10px",textAlign:"left",fontSize:".68rem",letterSpacing:.5}}>CATEGORY</th>
         <th style={{padding:"8px 10px",textAlign:"left",fontSize:".68rem",letterSpacing:.5}}>MODE</th>
-        <th style={{padding:"8px 10px",textAlign:"right",fontSize:".68rem",letterSpacing:.5}}>AMOUNT (\u20A6)</th>
+        <th style={{padding:"8px 10px",textAlign:"right",fontSize:".68rem",letterSpacing:.5}}>AMOUNT ({'\u20A6'})</th>
       </tr></thead>
       <tbody>{(viewRcp.payments||[]).map((p,i)=><tr key={i} style={{borderBottom:"1px solid var(--border2)",background:i%2===0?"#fff":"var(--bg2)"}}>
         <td style={{padding:"7px 10px"}}>{fmtD(p.date)}</td>
@@ -1153,7 +1173,7 @@ function Lessons({sec}){
     </div>
     <div className="msg-info" style={{marginBottom:14}}>ℹ Lesson fees are completely independent of the Daily Cash Book. They do not appear in student ledgers or fee categories. Viewing: <strong>Section {activeSec}</strong> — {activeSec==="A"?"Crèche to Primary 1":"Primary 2 to SS3"}.</div>
     <div className="card"><div className="sect">Week Configuration</div><div className="fr">
-      <div className="fl"><span className="flb">Flat Rate / Teacher (\u20A6)</span><input type="number" value={rate} onChange={e=>ctx.setLessonCur({...lc,teacherRate:parseFloat(e.target.value)||0})} className="inpm" style={{width:140}}/></div>
+      <div className="fl"><span className="flb">Flat Rate / Teacher ({'\u20A6'})</span><input type="number" value={rate} onChange={e=>ctx.setLessonCur({...lc,teacherRate:parseFloat(e.target.value)||0})} className="inpm" style={{width:140}}/></div>
       <div className="fl"><span className="flb">Teachers on Ground</span><input type="number" value={tc} onChange={e=>ctx.setLessonCur({...lc,teacherCount:parseInt(e.target.value)||0})} className="inpm" style={{width:110}}/></div>
     </div></div>
     <div className="card"><div className="sect">Daily Collection — Section {activeSec} Classes</div><div style={{overflowX:"auto"}}>
@@ -1235,7 +1255,7 @@ function Sal(){
     {msg&&<div className="msg-ok">{msg.m}</div>}
     <div className="card"><div className="sect">Add Staff</div><div className="fr">
       <div className="fl" style={{flex:2}}><span className="flb">Full Name</span><input value={nm} onChange={e=>setNm(e.target.value)} className="inp" placeholder="Staff full name"/></div>
-      <div className="fl" style={{flex:1}}><span className="flb">Net Pay (\u20A6)</span><input type="number" value={py} onChange={e=>setPy(e.target.value)} className="inpm" placeholder="0.00"/></div>
+      <div className="fl" style={{flex:1}}><span className="flb">Net Pay ({'\u20A6'})</span><input type="number" value={py} onChange={e=>setPy(e.target.value)} className="inpm" placeholder="0.00"/></div>
       <button className="btn btn-gold" onClick={add}>ADD STAFF</button>
     </div></div>
     <div className="card"><div className="fb" style={{marginBottom:10}}><div className="sect" style={{marginBottom:0}}>Staff List</div><div style={{fontFamily:"var(--ff-m)",fontSize:".78rem",color:"var(--navy)",fontWeight:700}}>Total Payroll: {N(total)}</div></div>
@@ -1253,7 +1273,7 @@ function ExamPortal(){
     <div className="card"><div className="fr">
       <div className="fl"><span className="flb">Student</span><select value={en.student} onChange={e=>setEn({...en,student:e.target.value})} className="sel"><option value="">—</option>{sl.map(n=><option key={n}>{n}</option>)}</select></div>
       <div className="fl"><span className="flb">Exam Type</span><input value={en.examType} onChange={e=>setEn({...en,examType:e.target.value})} className="inp" placeholder="e.g. WAEC, BECE"/></div>
-      <div className="fl"><span className="flb">Amount (\u20A6)</span><input type="number" value={en.amount} onChange={e=>setEn({...en,amount:e.target.value})} className="inpm" placeholder="0"/></div>
+      <div className="fl"><span className="flb">Amount ({'\u20A6'})</span><input type="number" value={en.amount} onChange={e=>setEn({...en,amount:e.target.value})} className="inpm" placeholder="0"/></div>
       <button className="btn btn-gold" onClick={add}>ADD</button>
     </div></div>
     <div className="tw"><table><thead><tr><th>#</th><th>Student</th><th>Exam</th><th className="r">Amount</th><th>Date</th></tr></thead><tbody>{fl.length===0&&<tr><td colSpan={5} className="er">No entries for {sc}.</td></tr>}{fl.map((e,i)=><tr key={e.eid}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:500}}>{e.student}</td><td>{e.examType}</td><td className="my">{N(e.amount)}</td><td>{fmtD(e.date)}</td></tr>)}</tbody></table></div>
@@ -1430,7 +1450,7 @@ function Settings(){
       <div className="fr">
         <div className="fl" style={{flex:2}}><span className="flb">Student</span><input value={dp.student} onChange={e=>setDp({...dp,student:e.target.value})} className="inp" placeholder="Student name"/></div>
         <div className="fl" style={{flex:1}}><span className="flb">Class</span><select value={dp.class_name} onChange={e=>setDp({...dp,class_name:e.target.value})} className="sel">{ALL_CLS.map(c=><option key={c}>{c}</option>)}</select></div>
-        <div className="fl"><span className="flb">Amount (\u20A6)</span><input type="number" value={dp.amount} onChange={e=>setDp({...dp,amount:e.target.value})} className="inpm" placeholder="0" style={{width:120}}/></div>
+        <div className="fl"><span className="flb">Amount ({'\u20A6'})</span><input type="number" value={dp.amount} onChange={e=>setDp({...dp,amount:e.target.value})} className="inpm" placeholder="0" style={{width:120}}/></div>
         <button className="btn btn-primary btn-sm" onClick={addDP}>RECORD</button>
       </div>
       {(ctx.directPay||[]).length>0&&<div className="tw" style={{marginTop:10}}><table><thead><tr><th>Student</th><th>Class</th><th className="r">Amount</th><th>Date</th></tr></thead><tbody>{(ctx.directPay||[]).map(d=><tr key={d.did}><td>{d.student}</td><td>{d.class_name}</td><td className="my">{N(d.amount)}</td><td>{fmtD(d.date)}</td></tr>)}</tbody></table></div>}
