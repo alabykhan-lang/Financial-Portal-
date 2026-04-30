@@ -328,8 +328,8 @@ function Prov({children}){
       let raw=[];
       const mapped={};
       try{
-        // Fetch all columns — auto-detect whatever schema the result portal uses
-        raw=await sbG("students","select=*&order=name.asc&limit=2000");
+        // Fetch all rows — auto-detect whatever schema the result portal uses
+        raw=await sbG("students","select=*&limit=3000");
         if(raw.length>0){
           // Detect column names dynamically from first row
           const sample=raw[0];
@@ -342,7 +342,7 @@ function Prov({children}){
           const admCol=["admno","adm_no","admission_no","admission_number","reg_no","registration_number"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("adm")||k.toLowerCase().includes("reg"))||"admno";
           const genderCol=["gender","sex"].find(k=>keys.includes(k))||"gender";
           console.log("Students schema detected — name:",nameCol,"class:",classCol,"adm:",admCol);
-          raw.forEach(s=>{
+          raw.sort((a,b)=>(a[nameCol]||"").localeCompare(b[nameCol]||"")).forEach(s=>{
             const cls=mapKey(s[classCol]);if(!cls)return;
             if(!mapped[cls])mapped[cls]=[];
             const adm=s[admCol]||("WTS-"+String(s.id||"").slice(0,6).toUpperCase());
@@ -472,7 +472,7 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
   const refreshStudents=useCallback(async()=>{
     setSyncMsg("Syncing…");setDbOk(null);
     try{
-      const raw=await sbG("students","select=*&order=name.asc&limit=2000");
+      const raw=await sbG("students","select=*&limit=3000");
       const mapped={};
       if(raw.length>0){
         const keys=Object.keys(raw[0]);
@@ -480,7 +480,7 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
         const classCol=["class_key","class","class_name","className","student_class"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("class"))||"class_key";
         const admCol=["admno","adm_no","admission_no","admission_number","reg_no","registration_number"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("adm")||k.toLowerCase().includes("reg"))||"admno";
         const genderCol=["gender","sex"].find(k=>keys.includes(k))||"gender";
-        raw.forEach(s=>{
+        raw.sort((a,b)=>(a[nameCol]||"").localeCompare(b[nameCol]||"")).forEach(s=>{
           const cls=mapKey(s[classCol]);if(!cls)return;
           if(!mapped[cls])mapped[cls]=[];
           const adm=s[admCol]||("WTS-"+String(s.id||"").slice(0,6).toUpperCase());
@@ -493,9 +493,8 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
     }catch(e){setDbOk(false);setSyncMsg("Sync failed")}
   },[cashBook]);
   useEffect(()=>{
-    const t=setInterval(refreshStudents,60000);
     window.addEventListener("focus",refreshStudents);
-    return()=>{clearInterval(t);window.removeEventListener("focus",refreshStudents)};
+    return()=>{window.removeEventListener("focus",refreshStudents)};
   },[refreshStudents]);
   const saveSal=async s=>{try{await sbP("ssfp_salaries",s)}catch{};setSalaries(p=>{const n=[...p,s];LS.s("ssfp_sal",n);return n})};
   const saveExt=async e=>{try{await sbP("ssfp_ext_exams",e)}catch{};setExtExams(p=>{const n=[...p,e];LS.s("ssfp_ext",n);return n})};
