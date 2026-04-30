@@ -731,6 +731,28 @@ function Portal(){
         <span style={{flex:1}}>{dbWriteErr}</span>
         <button onClick={()=>setDbWriteErr(null)} style={{background:"rgba(255,255,255,.2)",border:"none",color:"#fff",borderRadius:4,padding:"3px 10px",cursor:"pointer",fontSize:".76rem"}}>✕</button>
       </div>}
+      
+      {/* Global Sync Alert */}
+      {(() => {
+        const sTotal=Object.values(ctx.students).reduce((a,b)=>a+b.length,0);
+        const [showD, setShowD] = useState(false);
+        if (sTotal > 0 || !isAdmin) return null;
+        return (
+          <div style={{background:"#fff3cd",padding:"12px 20px",borderBottom:"1px solid #ffeeba",color:"#856404",fontSize:".82rem",display:"flex",flexDirection:"column",gap:8}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span><strong>Sync Alert:</strong> 0 students found. This usually means a database connection issue or a schema mismatch.</span>
+              {ctx.debugInfo && <button onClick={()=>setShowD(!showD)} style={{background:"#856404",color:"#fff",border:"none",padding:"4px 10px",borderRadius:4,cursor:"pointer",fontSize:".7rem"}}>{showD?"Hide Info":"Show Debug Info"}</button>}
+            </div>
+            {showD && ctx.debugInfo && (
+              <div style={{background:"#fff",padding:10,borderRadius:6,border:"1px solid #ddd",fontFamily:"monospace",fontSize:".72rem",marginTop:5}}>
+                <div>Columns: {ctx.debugInfo.keys.join(", ")}</div>
+                <div>Detected: {JSON.stringify(ctx.debugInfo.detected)}</div>
+              </div>
+            )}
+            {!ctx.debugInfo && <div style={{fontSize:".75rem",opacity:0.8}}>The database returned 0 rows. Please check if the "students" table has data in Supabase.</div>}
+          </div>
+        );
+      })()}
       <main className="pc">
         <ErrorBoundary key={tab}>
           {tab==="home"&&<HomePage sec={effSec} setTab={setTab}/>}
@@ -1309,21 +1331,6 @@ function Dash({sec}){
   const catBk={};ae.filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{catBk[e.category]=(catBk[e.category]||0)+e.amount});
   const cStats=secClasses.map(c=>{const st=ctx.students[c]||[];const tp=st.reduce((s,x)=>(x.payments||[]).filter(p=>p.amount>0).reduce((ps,p)=>ps+p.amount,0)+s,0);return{c,n:st.length,tp}}).filter(x=>x.n>0);
   return<div className="fu">
-    {sTotal===0 && ctx.debugInfo && (
-      <div style={{background:"#fff3cd",padding:"1rem",borderRadius:"12px",marginBottom:"1.5rem",border:"1px solid #ffeeba",color:"#856404",fontSize:"0.9rem"}}>
-        <p><strong>Sync Alert:</strong> 0 students loaded from database. This might be a schema mismatch.</p>
-        <button onClick={()=>setShowDebug(!showDebug)} style={{background:"#856404",color:"white",border:"none",padding:"5px 10px",borderRadius:"4px",marginTop:"10px",cursor:"pointer"}}>
-          {showDebug?"Hide Debug Info":"Show Debug Info"}
-        </button>
-        {showDebug && (
-          <div style={{marginTop:"1rem",background:"white",padding:"1rem",borderRadius:"8px",border:"1px solid #ddd",fontFamily:"monospace",fontSize:"0.8rem",overflowX:"auto"}}>
-            <p>Found Columns: {ctx.debugInfo.keys.join(", ")}</p>
-            <p>Detected Schema: {JSON.stringify(ctx.debugInfo.detected)}</p>
-            <p style={{marginTop:"0.5rem",color:"#666"}}>Tip: If "class" is not matching, check if your database column for class is in the list above.</p>
-          </div>
-        )}
-      </div>
-    )}
     <div className="fb" style={{marginBottom:14}}>
       <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)"}}>Dashboard — Section {sec||"All"}</h2>
     </div>
