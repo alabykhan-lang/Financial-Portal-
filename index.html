@@ -640,7 +640,8 @@ function DebtList({sec}){
 }
 // PORTAL + SIDEBAR
 function Portal(){
-  const{session,setSession,notifs,setNotifs,dbOk,syncMsg,refreshStudents,addAudit,runAIAudit,dbWriteErr,setDbWriteErr}=useApp();
+  const ctx=useApp();
+  const{session,setSession,notifs,setNotifs,dbOk,syncMsg,refreshStudents,addAudit,runAIAudit,dbWriteErr,setDbWriteErr}=ctx;
   const isAdmin=session?.role==="admin"||session?.role==="superadmin";
   const isProp=session?.isProp||false;const isSuper=session?.isSuper||false;const role=session?.role;
   const[tab,setTabRaw]=useState(()=>SS.g("ssfp_tab","home"));
@@ -700,6 +701,15 @@ function Portal(){
           </div>}
         </div>
         <button className="sb-lo" onClick={logout}>Sign Out</button>
+      </div>
+      <div style={{padding:"10px 20px",borderTop:"1px solid var(--navy3)",background:"rgba(0,0,0,0.2)"}}>
+        <div style={{fontSize:".68rem",color:"rgba(255,255,255,.4)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span>v2.0.2 (Hardened)</span>
+          <span style={{color:ctx.dbOk?"#86efac":"var(--red)"}}>{ctx.dbOk?"● Online":"● Offline"}</span>
+        </div>
+        <div style={{fontSize:".62rem",color:"rgba(255,255,255,.3)",marginTop:4}}>
+          {ctx.syncMsg}
+        </div>
       </div>
     </aside>
     <div className="pm">
