@@ -787,6 +787,7 @@ function HomePage({sec,setTab}){
 // CASH BOOK
 function CashBook({sec}){
   const ctx=useApp();
+  const isAdmin=ctx.session?.role==="admin"||ctx.session?.role==="proprietor"||ctx.session?.role==="superadmin";
   const classes=sec==="A"?SEC_A:SEC_B;
   const entries=useMemo(()=>(ctx.cashBook||[]).filter(e=>e.section===sec).sort((a,b)=>(a.date||"").localeCompare(b.date||"")||a.timestamp-b.timestamp),[ctx.cashBook,sec]);
   const activeCats=(ctx.categories||DEF_CATS).filter(c=>ctx.termCfg?.activeCats?.[c]!==false);
@@ -1290,7 +1291,7 @@ function UserMgmt(){
     if([PROP_USER,SUPER_USER].includes(form.username.trim().toLowerCase())){setMsg({t:1,m:"That username is reserved."});return}
     if(users.find(u=>u.username.toLowerCase()===form.username.trim().toLowerCase())){setMsg({t:1,m:"Username exists."});return}
     const hash=await hashPin(form.pin,form.username.trim().toLowerCase());
-    const nu={uid:uid(),name:form.name.trim(),username:form.username.trim().toLowerCase(),role:form.role,section:form.section,pin_hash:hash,is_active:true,created_by:session.name,created_at:new Date().toISOString(),last_seen:null,login_count:0};
+    const nu={uid:uid(),name:form.name.trim(),username:form.username.trim().toLowerCase(),role:form.role,section:form.section,pin_hash:hash,is_active:true};
     try{await sbU("ssfp_users",[nu])}catch(e){setMsg({t:1,m:"DB error: "+e.message});return}
     const up=[...users,nu];setUsers(up);
     addAudit("ADD_USER",`Created ${nu.username} (${nu.role})`,session.name);
