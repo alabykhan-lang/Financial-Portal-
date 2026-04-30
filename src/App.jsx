@@ -1,8 +1,8 @@
 import React from 'react';
 import { useApp } from './context/AppContext';
-import Splash from './components/Splash';
-import AuthGate from './components/AuthGate';
-import Portal from './components/Portal';
+import Splash from './components/core/Splash';
+import AuthGate from './components/core/AuthGate';
+import Portal from './components/core/Portal';
 
 export default function App() {
   const { session, dbOk } = useApp();

@@ -29,34 +29,26 @@ export const dayN = d => new Date(d + "T12:00:00").toLocaleDateString("en-US", {
 export const N = n => "₦" + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export const LS = {
-  g: (k, f) => {
+  get: (k, f) => {
     try {
       const v = localStorage.getItem(k);
       return v !== null ? JSON.parse(v) : f;
-    } catch {
-      return f;
-    }
+    } catch { return f; }
   },
-  s: (k, v) => {
-    try {
-      localStorage.setItem(k, JSON.stringify(v));
-    } catch {}
+  set: (k, v) => {
+    try { localStorage.setItem(k, JSON.stringify(v)); } catch {}
   }
 };
 
 export const SS = {
-  g: (k, f) => {
+  get: (k, f) => {
     try {
       const v = sessionStorage.getItem(k);
       return v !== null ? JSON.parse(v) : f;
-    } catch {
-      return f;
-    }
+    } catch { return f; }
   },
-  s: (k, v) => {
-    try {
-      sessionStorage.setItem(k, JSON.stringify(v));
-    } catch {}
+  set: (k, v) => {
+    try { sessionStorage.setItem(k, JSON.stringify(v)); } catch {}
   }
 };
 
@@ -69,7 +61,7 @@ export const hashPin = async (pin, salt) => {
 import { PROP_PIN_KEY, PROP_DEFAULT_PIN, PROP_USER } from '../constants';
 
 export const checkPropPin = async (entered) => {
-  const stored = LS.g(PROP_PIN_KEY, null);
+  const stored = LS.get(PROP_PIN_KEY, null);
   if (!stored) {
     const dh = await hashPin(PROP_DEFAULT_PIN, PROP_USER);
     const eh = await hashPin(entered, PROP_USER);
