@@ -249,8 +249,8 @@ tr.rvr td{background:#fffbf0}
 <div id="root"></div>
 <script type="text/babel">
 const{useState,useEffect,useCallback,useMemo,useRef,createContext,useContext}=React;
-const SB="https://qbjtiximcchhnxhttogq.supabase.co";
-const SK="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFianRpeGltY2NoaG54aHR0b2dxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTg1MDM5NCwiZXhwIjoyMDkxNDI2Mzk0fQ.485SXyI0Lvcr7eTtXA2Derlap8n2OTnqItZ0w15IJbM";
+const SB="https://wuftzyeajmsxdrbwaawl.supabase.co";
+const SK="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnR6eWVham1zeGRyYndhYXdsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mzg2NzM1OCwiZXhwIjoyMDg5NDQzMzU4fQ.1RWqnCBKga7WtIn8UenqxYgAhoMf2qCdZzPpjeZ7Q44";
 const SH={"apikey":SK,"Authorization":"Bearer "+SK,"Content-Type":"application/json","Prefer":"return=representation"};
 const sbG=async(t,q="")=>{const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),10000);try{const r=await fetch(`${SB}/rest/v1/${t}?${q}`,{headers:SH,signal:ctrl.signal});clearTimeout(tid);if(!r.ok)throw new Error(await r.text());return r.json()}catch(e){clearTimeout(tid);if(e.name==="AbortError")throw new Error("Connection Timeout (10s). Check internet.");throw e}};
 const sbP=async(t,d)=>{const r=await fetch(`${SB}/rest/v1/${t}`,{method:"POST",headers:SH,body:JSON.stringify(Array.isArray(d)?d:[d])});if(!r.ok)throw new Error(await r.text());return r.json()};
@@ -308,8 +308,8 @@ const hashPin=async(pin,salt)=>{const d=new TextEncoder().encode(pin+":"+salt+":
 const checkPropPin=async(entered)=>{const stored=LS.g(PROP_PIN_KEY,null);if(!stored){const dh=await hashPin(PROP_DEFAULT_PIN,PROP_USER);const eh=await hashPin(entered,PROP_USER);return dh===eh}const eh=await hashPin(entered,PROP_USER);return stored===eh};
 const Ctx=createContext();
 function Prov({children}){
-  const[session,setSessionRaw]=useState(()=>SS.g("ssfp_sess",null));
-  const setSession=useCallback((s)=>{setSessionRaw(s);if(s)SS.s("ssfp_sess",s);else{try{sessionStorage.removeItem("ssfp_sess")}catch{}}},[]);
+  const[session,setSessionRaw]=useState(()=>LS.g("ssfp_sess",null));
+  const setSession=useCallback((s)=>{setSessionRaw(s);if(s)LS.s("ssfp_sess",s);else{try{localStorage.removeItem("ssfp_sess")}catch{}}},[]);
   const[dbOk,setDbOk]=useState(null);const[syncMsg,setSyncMsg]=useState("Connecting…");
   const[debugInfo,setDebugInfo]=useState(null);
   const[fetchErr,setFetchErr]=useState(null);
@@ -346,38 +346,17 @@ function Prov({children}){
       let raw=[];
       const mapped={};
       try{
-        // Fetch all rows — auto-detect whatever schema the result portal uses
-        const tName = LS.g("ssfp_student_table", "students");
-        raw=await sbG(tName,"select=*&limit=3000");
-        if(raw.length>0){
-          const smpl = raw[0];
-          const ks = Object.keys(smpl);
-          setDebugInfo({keys:ks, detected:{nameCol:ks.find(k=>["name","student_name","fullname","full_name","student"].find(kk=>k.toLowerCase().includes(kk))), classCol:ks.find(k=>["class","level","arm"].find(kk=>k.toLowerCase().includes(kk)))}});
-          // Detect column names dynamically from first row
-          const sample=raw[0];
-          const keys=Object.keys(sample);
-          const fNameCol=keys.find(k=>["firstname","first_name","fname"].includes(k.toLowerCase()));
-          const lNameCol=keys.find(k=>["surname","lastname","last_name","lname"].includes(k.toLowerCase()));
-          const nameCol=["name","student_name","fullname","full_name","student"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("name"))||fNameCol||"name";
-          const classCol=["class_key","class","class_name","className","student_class","level","arm","current_class"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("class"))||"class_key";
-          const admCol=["admno","adm_no","admission_no","admission_number","reg_no","registration_number","student_id"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("adm")||k.toLowerCase().includes("reg")||k.toLowerCase().includes("id"))||"admno";
-          const genderCol=["gender","sex"].find(k=>keys.includes(k))||"gender";
-          
-          setDebugInfo({keys,detected:{name:nameCol,class:classCol,adm:admCol,splitNames:!!(fNameCol&&lNameCol)}});
-          console.log("Students schema detected — name:",nameCol,"class:",classCol,"adm:",admCol);
-          
-          raw.forEach(s=>{
-            const cls=mapKey(s[classCol]);if(!cls)return;
-            if(!mapped[cls])mapped[cls]=[];
-            let finalName=s[nameCol]||"";
-            if(!finalName&&fNameCol&&lNameCol)finalName=(s[fNameCol]||"")+" "+(s[lNameCol]||"");
-            const adm=s[admCol]||("WTS-"+String(s.id||"").slice(0,6).toUpperCase());
-            if(!mapped[cls].find(x=>x.admno===adm&&x.name===finalName))
-              mapped[cls].push({name:finalName||"",admno:adm,gender:s[genderCol]||"",supaId:s.id,payments:[],arrears:0});
-          });
-          mapped._sorted=true; // flag for client-side sorting below
-        }
+        raw=await sbG("students","select=*&limit=3000");
+        raw.forEach(s=>{
+          const cls=mapKey(s.class_key); if(!cls)return;
+          if(!mapped[cls])mapped[cls]=[];
+          if(!mapped[cls].find(x=>x.admno===s.admno))
+            mapped[cls].push({name:s.name||"",admno:s.admno,gender:s.gender||"",supaId:s.id,payments:[],arrears:0});
+        });
       }catch(se){
+        console.warn("Students table load failed:",se.message);
+        const cached=LS.g("ssfp_students",{});Object.assign(mapped,cached);
+      }
         console.warn("Students table load failed:",se.message);
         const cached=LS.g("ssfp_students",{});Object.assign(mapped,cached);
       }
@@ -501,50 +480,16 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
   const refreshStudents=useCallback(async()=>{
     setSyncMsg("Syncing…");setDbOk(null);setFetchErr(null);
     try{
-      let tName = LS.g("ssfp_student_table", "students");
-      let raw=await sbG(tName,"select=*&limit=3000");
-      
-      // Auto-scan common names if primary table is empty
-      if (raw.length === 0) {
-        const common = ["ssfp_students", "Student", "profiles", "student_info", "student_records", "student_data", "records", "biodata", "student_biodata", "registration", "enrollment", "Student_Profiles"];
-        for (const t of common) {
-          try {
-            const test = await sbG(t, "select=*&limit=1");
-            if (test.length > 0) {
-              tName = t;
-              LS.s("ssfp_student_table", t);
-              raw = await sbG(t, "select=*&limit=3000");
-              setFetchErr(null);
-              break;
-            }
-          } catch(e) {}
-        }
-      }
-
+      const raw=await sbG("students","select=*&limit=3000");
       const mapped={};
-      if(raw.length>0){
-        const smpl = raw[0];
-        const ks = Object.keys(smpl);
-        setDebugInfo({keys:ks, detected:{nameCol:ks.find(k=>["name","student_name","fullname","full_name","student"].find(kk=>k.toLowerCase().includes(kk))), classCol:ks.find(k=>["class","level","arm"].find(kk=>k.toLowerCase().includes(kk)))}});
-        const keys=Object.keys(raw[0]);
-        const fNameCol=keys.find(k=>["firstname","first_name","fname"].includes(k.toLowerCase()));
-        const lNameCol=keys.find(k=>["surname","lastname","last_name","lname"].includes(k.toLowerCase()));
-        const nameCol=["name","student_name","fullname","full_name","student"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("name"))||fNameCol||"name";
-        const classCol=["class_key","class","class_name","className","student_class","level","arm","current_class"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("class"))||"class_key";
-        const admCol=["admno","adm_no","admission_no","admission_number","reg_no","registration_number","student_id"].find(k=>keys.includes(k))||keys.find(k=>k.toLowerCase().includes("adm")||k.toLowerCase().includes("reg")||k.toLowerCase().includes("id"))||"admno";
-        const genderCol=["gender","sex"].find(k=>keys.includes(k))||"gender";
-        
-        raw.forEach(s=>{
-          const cls=mapKey(s[classCol]);if(!cls)return;
-          if(!mapped[cls])mapped[cls]=[];
-          let finalName=s[nameCol]||"";
-          if(!finalName&&fNameCol&&lNameCol)finalName=(s[fNameCol]||"")+" "+(s[lNameCol]||"");
-          const adm=s[admCol]||("WTS-"+String(s.id||"").slice(0,6).toUpperCase());
-          if(!mapped[cls].find(x=>x.admno===adm&&x.name===finalName))
-            mapped[cls].push({name:finalName||"",admno:adm,gender:s[genderCol]||"",supaId:s.id,payments:[],arrears:0});
-        });
-        Object.keys(mapped).forEach(cls=>{if(Array.isArray(mapped[cls]))mapped[cls].sort((a,b)=>a.name.localeCompare(b.name))});
-      }
+      raw.forEach(s=>{
+        const cls=mapKey(s.class_key); if(!cls)return;
+        if(!mapped[cls])mapped[cls]=[];
+        if(!mapped[cls].find(x=>x.admno===s.admno))
+          mapped[cls].push({name:s.name||"",admno:s.admno,gender:s.gender||"",supaId:s.id,payments:[],arrears:0});
+      });
+      Object.keys(mapped).forEach(cls=>{if(Array.isArray(mapped[cls]))mapped[cls].sort((a,b)=>a.name.localeCompare(b.name))});
+      
       (cashBook||[]).filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{if(!mapped[e.class_name])return;const si=mapped[e.class_name].findIndex(s=>s.name===e.student);if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:e.amount,mode:e.mode,isPriorTerm:e.is_prior_term||false,timestamp:e.timestamp})});
       setStudents(mapped);setDbOk(true);setSyncMsg(`Synced — ${raw.length} students`);
     }catch(e){setFetchErr(e.message);setDbOk(false);setSyncMsg(`Sync failed: ${e.message}`)}
@@ -671,12 +616,12 @@ function Portal(){
   const{session,setSession,notifs,setNotifs,dbOk,syncMsg,refreshStudents,addAudit,runAIAudit,dbWriteErr,setDbWriteErr}=ctx;
   const isAdmin=session?.role==="admin"||session?.role==="superadmin";
   const isProp=session?.isProp||false;const isSuper=session?.isSuper||false;const role=session?.role;
-  const[tab,setTabRaw]=useState(()=>SS.g("ssfp_tab","home"));
-  const[sec,setSecRaw]=useState(()=>SS.g("ssfp_sec",session?.section==="B"?"B":"A"));
+  const[tab,setTabRaw]=useState(()=>LS.g("ssfp_tab","home"));
+  const[sec,setSecRaw]=useState(()=>LS.g("ssfp_sec",session?.section==="B"?"B":"A"));
   const[tabHistory,setTabHistory]=useState(["home"]);
-  const setTab=t=>{setTabRaw(t);SS.s("ssfp_tab",t);setTabHistory(h=>{const last=h[h.length-1];return last===t?h:[...h.slice(-9),t]});};
-  const goBack=()=>{setTabHistory(h=>{if(h.length<=1)return h;const nh=h.slice(0,-1);const prev=nh[nh.length-1];setTabRaw(prev);SS.s("ssfp_tab",prev);return nh;});};
-  const setSec=s=>{setSecRaw(s);SS.s("ssfp_sec",s)};
+  const setTab=t=>{setTabRaw(t);LS.s("ssfp_tab",t);setTabHistory(h=>{const last=h[h.length-1];return last===t?h:[...h.slice(-9),t]});};
+  const goBack=()=>{setTabHistory(h=>{if(h.length<=1)return h;const nh=h.slice(0,-1);const prev=nh[nh.length-1];setTabRaw(prev);LS.s("ssfp_tab",prev);return nh;});};
+  const setSec=s=>{setSecRaw(s);LS.s("ssfp_sec",s)};
   const[open,setOpen]=useState(false);const[showN,setShowN]=useState(false);
   const ur=(notifs||[]).filter(n=>!n.read).length;
   const effSec=role==="bursarA"?"A":role==="bursarB"?"B":sec;
@@ -695,7 +640,11 @@ function Portal(){
     // Superadmin exits silently — no audit trace, no logout notification
     if(!isProp&&!isSuper&&session?.name)addAudit("LOGOUT",`${session.name} logged out`,session.name);
     setSession(null);
-    try{sessionStorage.removeItem("ssfp_tab");sessionStorage.removeItem("ssfp_sec");sessionStorage.removeItem("ssfp_sess")}catch{}
+    try{
+      localStorage.removeItem("ssfp_tab");
+      localStorage.removeItem("ssfp_sec");
+      localStorage.removeItem("ssfp_sess");
+    }catch{}
   }
   return<div className="pl">
     <div className={"sb-ov"+(open?"":" h")} onClick={()=>setOpen(false)}/>
@@ -759,53 +708,6 @@ function Portal(){
         <button onClick={()=>setDbWriteErr(null)} style={{background:"rgba(255,255,255,.2)",border:"none",color:"#fff",borderRadius:4,padding:"3px 10px",cursor:"pointer",fontSize:".76rem"}}>✕</button>
       </div>}
       
-      {/* Global Sync Alert */}
-      {(() => {
-        const sTotal=Object.values(ctx.students).reduce((a,b)=>a+b.length,0);
-        const [showD, setShowD] = useState(false);
-        const [customTable, setCustomTable] = useState(() => LS.g("ssfp_student_table", "students"));
-        
-        if (sTotal > 0 || !isAdmin) return null;
-        
-        const tryTable = async () => {
-          LS.s("ssfp_student_table", customTable);
-          ctx.setSyncMsg("Retrying with " + customTable + "...");
-          await ctx.refreshStudents();
-        };
-
-        return (
-          <div style={{background:"#fff3cd",padding:"12px 20px",borderBottom:"1px solid #ffeeba",color:"#856404",fontSize:0.82+"rem",display:"flex",flexDirection:"column",gap:8}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
-              <span><strong>Sync Alert:</strong> {ctx.fetchErr ? <span style={{color:"var(--red)"}}>Error: {ctx.fetchErr}</span> : `0 students found in table "${customTable}".`}</span>
-              <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                <input 
-                  value={customTable} 
-                  onChange={e=>setCustomTable(e.target.value)} 
-                  placeholder="Table Name"
-                  style={{padding:"4px 8px",borderRadius:4,border:"1px solid #ccc",fontSize:0.75+"rem",width:120}}
-                />
-                <button onClick={tryTable} style={{background:"var(--navy)",color:"#fff",border:"none",padding:"4px 10px",borderRadius:4,cursor:"pointer",fontSize:0.7+"rem"}}>Try This Table</button>
-                {ctx.debugInfo && <button onClick={()=>setShowD(!showD)} style={{background:"#856404",color:"#fff",border:"none",padding:"4px 10px",borderRadius:4,cursor:"pointer",fontSize:0.7+"rem"}}>{showD?"Hide Info":"Show Debug Info"}</button>}
-              </div>
-            </div>
-            {showD && ctx.debugInfo && (
-              <div style={{background:"#fff",padding:10,borderRadius:6,border:"1px solid #ddd",fontFamily:"monospace",fontSize:0.72+"rem",marginTop:5}}>
-                <div>Columns: {ctx.debugInfo.keys.join(", ")}</div>
-                <div>Detected: {JSON.stringify(ctx.debugInfo.detected)}</div>
-              </div>
-            )}
-            {!ctx.debugInfo && (
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:5}}>
-                <div style={{fontSize:0.75+"rem",opacity:0.8}}>No data found in table "{customTable}".</div>
-                <button onClick={async()=>{
-                  ctx.setSyncMsg("Auto-scanning tables...");
-                  await ctx.refreshStudents();
-                }} style={{background:"var(--gold)",color:"var(--navy)",border:"none",padding:"4px 12px",borderRadius:4,cursor:"pointer",fontSize:0.7+"rem",fontWeight:700}}>✨ SMART SCAN DATABASE</button>
-              </div>
-            )}
-          </div>
-        );
-      })()}
       <main className="pc">
         <ErrorBoundary key={tab}>
           {tab==="home"&&<HomePage sec={effSec} setTab={setTab}/>}
