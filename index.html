@@ -252,7 +252,7 @@ const{useState,useEffect,useCallback,useMemo,useRef,createContext,useContext}=Re
 const SB="https://wuftzyeajmsxdrbwaawl.supabase.co";
 const SK="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnR6eWVham1zeGRyYndhYXdsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mzg2NzM1OCwiZXhwIjoyMDg5NDQzMzU4fQ.1RWqnCBKga7WtIn8UenqxYgAhoMf2qCdZzPpjeZ7Q44";
 const SH={"apikey":SK,"Authorization":"Bearer "+SK,"Content-Type":"application/json","Prefer":"return=representation"};
-const sbG=async(t,q="")=>{const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),10000);try{const r=await fetch(`${SB}/rest/v1/${t}?${q}`,{headers:SH,signal:ctrl.signal});clearTimeout(tid);if(!r.ok)throw new Error(await r.text());return r.json()}catch(e){clearTimeout(tid);if(e.name==="AbortError")throw new Error("Connection Timeout (10s). Check internet.");throw e}};
+const sbG=async(t,q="",rangeEnd=999)=>{const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),15000);try{const r=await fetch(`${SB}/rest/v1/${t}?${q}`,{headers:{...SH,"Range":`0-${rangeEnd}`},signal:ctrl.signal});clearTimeout(tid);if(!r.ok)throw new Error(await r.text());return r.json()}catch(e){clearTimeout(tid);if(e.name==="AbortError")throw new Error("Connection Timeout (15s). Check internet.");throw e}};
 const sbP=async(t,d)=>{const r=await fetch(`${SB}/rest/v1/${t}`,{method:"POST",headers:SH,body:JSON.stringify(Array.isArray(d)?d:[d])});if(!r.ok)throw new Error(await r.text());return r.json()};
 const sbPA=async(t,q,d)=>{const r=await fetch(`${SB}/rest/v1/${t}?${q}`,{method:"PATCH",headers:{...SH,"Prefer":"return=representation"},body:JSON.stringify(d)});if(!r.ok)throw new Error(await r.text());return r.json()};
 const sbU=async(t,d)=>{const r=await fetch(`${SB}/rest/v1/${t}`,{method:"POST",headers:{...SH,"Prefer":"return=representation,resolution=merge-duplicates"},body:JSON.stringify(Array.isArray(d)?d:[d])});if(!r.ok)throw new Error(await r.text());return r.json()};
@@ -354,7 +354,7 @@ function Prov({children}){
       let raw=[];
       const mapped={};
       try{
-        raw=await sbG("students","select=*&limit=3000");
+        raw=await sbG("students","select=*&order=id.asc&limit=3000",2999);
         raw.forEach(s=>{
           const cls=mapKey(s.class_key); if(!cls)return;
           if(!mapped[cls])mapped[cls]=[];
@@ -485,7 +485,7 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
   const refreshStudents=useCallback(async()=>{
     setSyncMsg("Syncing…");setDbOk(null);setFetchErr(null);
     try{
-      const raw=await sbG("students","select=*&limit=3000");
+      const raw=await sbG("students","select=*&order=id.asc&limit=3000",2999);
       const mapped={};
       raw.forEach(s=>{
         const cls=mapKey(s.class_key); if(!cls)return;
@@ -762,7 +762,7 @@ function HomePage({sec,setTab}){
   const todayExp=todayE.filter(e=>e.entry_type==="Expense"&&!e.reversal_of).reduce((s,e)=>s+e.amount,0);
   const todayCnt=todayE.filter(e=>e.entry_type==="Income"&&!e.reversed).length;
   const unread=(ctx.notifs||[]).filter(n=>!n.read).length;
-  const tStu=ALL_CLS.reduce((s,c)=>(ctx.students[c]||[]).length+s,0);
+  const tStu=Object.keys(ctx.students).filter(k=>k!=="_sorted").reduce((s,c)=>(ctx.students[c]||[]).length+s,0);
   const liq=(ctx.cashBook||[]).reduce((s,e)=>s+(e.entry_type==="Income"?e.amount:-e.amount),0);
   const dow=new Date().toLocaleDateString("en-US",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   const bTasks=[
@@ -841,7 +841,7 @@ function HomePage({sec,setTab}){
 function CashBook({sec}){
   const ctx=useApp();
   const isAdmin=ctx.session?.role==="admin"||ctx.session?.role==="proprietor"||ctx.session?.role==="superadmin";
-  const classes=sec==="A"?SEC_A:SEC_B;
+  const classes=sec==="A"?SEC_A_BASE:SEC_B_BASE;
   const entries=useMemo(()=>(ctx.cashBook||[]).filter(e=>e.section===sec).sort((a,b)=>(a.date||"").localeCompare(b.date||"")||a.timestamp-b.timestamp),[ctx.cashBook,sec]);
   const activeCats=(ctx.categories||DEF_CATS).filter(c=>ctx.termCfg?.activeCats?.[c]!==false);
   const[date,setDate]=useState(today());const[cl,setCl]=useState("");const[stu,setStu]=useState("");const[cat,setCat]=useState("");const[amt,setAmt]=useState("");const[mode,setMode]=useState("Cash");const[type,setType]=useState("Income");const[desc,setDesc]=useState("");const[fd,setFd]=useState(today());const[showR,setShowR]=useState(false);const[rId,setRId]=useState("");const[msg,setMsg]=useState(null);const[saving,setSaving]=useState(false);
