@@ -357,9 +357,6 @@ function Prov({children}){
         console.warn("Students table load failed:",se.message);
         const cached=LS.g("ssfp_students",{});Object.assign(mapped,cached);
       }
-        console.warn("Students table load failed:",se.message);
-        const cached=LS.g("ssfp_students",{});Object.assign(mapped,cached);
-      }
       // Sort each class list by name
       Object.keys(mapped).forEach(cls=>{if(Array.isArray(mapped[cls]))mapped[cls].sort((a,b)=>a.name.localeCompare(b.name))});
       // DB is the SINGLE source of truth. Always read from DB. localStorage is only a write-through cache.
