@@ -506,8 +506,7 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
       
       // Auto-scan common names if primary table is empty
       if (raw.length === 0) {
--        const common = ["Student", "profiles", "student_info", "student_records", "student_data", "records", "biodata", "student_biodata", "registration", "enrollment", "Student_Profiles"];
-+        const common = ["ssfp_students", "Student", "profiles", "student_info", "student_records", "student_data", "records", "biodata", "student_biodata", "registration", "enrollment", "Student_Profiles"];
+        const common = ["ssfp_students", "Student", "profiles", "student_info", "student_records", "student_data", "records", "biodata", "student_biodata", "registration", "enrollment", "Student_Profiles"];
         for (const t of common) {
           try {
             const test = await sbG(t, "select=*&limit=1");
