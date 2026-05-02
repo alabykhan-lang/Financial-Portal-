@@ -425,7 +425,7 @@ function Prov({children}){
     }
   },[]);
   const saveCashEntry=useCallback(async(e)=>{
-    const row={entry_id:e.id,date:e.date,class_name:e.cls||null,student:e.student||null,category:e.category||null,amount:e.amount,mode:e.mode||"Cash",entry_type:e.type,timestamp:e.timestamp,section:e.section,is_prior_term:e.isPriorTerm||false,reversed:false,reversal_of:e.reversalOf||null,note:e.note||e.description||null,receipt_id:e.id};
+    const row={entry_id:e.id,date:e.date,class_name:e.cls||null,student:e.student||null,category:e.category||null,amount:e.amount,mode:e.mode||"Cash",entry_type:e.type,timestamp:e.timestamp,section:e.section,is_prior_term:e.isPriorTerm||false,reversed:false,reversal_of:e.reversalOf||null,note:e.note||e.description||null};
     // Use UPSERT (not INSERT) so duplicate entry_ids never cause silent failures
     try{await sbU("ssfp_cashbook",[row]);setDbWriteErr(null)}
     catch(err){
@@ -643,7 +643,7 @@ function Portal(){
   const effSec=role==="bursarA"?"A":role==="bursarB"?"B":sec;
   const navSections=useMemo(()=>{
     const bTabs=s=>[{id:"home",l:"Home",i:"🏠"},{id:"cashbook",l:`Cash Book — Sec ${s}`,i:"📒"},{id:"classes",l:`Class Portal — Sec ${s}`,i:"🏫"},{id:"ledgers",l:`Ledgers — Sec ${s}`,i:"👤"},{id:"analysis",l:`Analysis — Sec ${s}`,i:"📋"},{id:"lessons",l:"Lesson Portal",i:"📅"}];
-    const aTabs=[{id:"home",l:"Home",i:"🏠"},{id:"dash",l:"Dashboard",i:"📊"},{id:"cashbook",l:"Cash Book",i:"📒"},{id:"debt",l:"Debt List",i:"📉"},{id:"classes",l:"Class Portal",i:"🏫"},{id:"ledgers",l:"Student Ledgers",i:"👤"},{id:"analysis",l:"Payment Analysis",i:"📋"},{id:"lessons",l:"Lesson Portal",i:"📅"},{id:"acct",l:"Accounting",i:"🏦"},{id:"sal",l:"Salaries",i:"💰"},{id:"exam",l:"Ext. Exams",i:"📝"},{id:"users",l:"User Management",i:"🔐"},{id:"set",l:"Settings",i:"⚙️"}];
+    const aTabs=[{id:"home",l:"Home",i:"🏠"},{id:"dash",l:"Dashboard",i:"📊"},{id:"cashbook",l:"Cash Book",i:"📒"},{id:"classes",l:"Class Portal",i:"🏫"},{id:"ledgers",l:"Student Ledgers",i:"👤"},{id:"analysis",l:"Payment Analysis",i:"📋"},{id:"lessons",l:"Lesson Portal",i:"📅"},{id:"acct",l:"Accounting",i:"🏦"},{id:"sal",l:"Salaries",i:"💰"},{id:"exam",l:"Ext. Exams",i:"📝"},{id:"users",l:"User Management",i:"🔐"},{id:"set",l:"Settings",i:"⚙️"}];
     if(isAdmin)return[{label:"MAIN MENU",items:aTabs}];
     if(role==="bursarA")return[{label:"SECTION A — BURSAR",items:bTabs("A")}];
     if(role==="bursarB")return[{label:"SECTION B — BURSAR",items:bTabs("B")}];
@@ -651,7 +651,7 @@ function Portal(){
   },[isAdmin,role,sec]);
   const roleLabel=isSuper?"Super Administrator":isProp?"Administrator":role==="admin"?"Administrator":role==="bursarA"?"Bursar — Section A":role==="bursarB"?"Bursar — Section B":"Staff";
   const initials=(session?.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-  const pageTitle={home:"Home",cashbook:"Daily Cash Book",classes:"Class Portal",ledgers:"Student Ledgers",analysis:"Payment Analysis",debt:"Debt List",lessons:"Lesson Portal",dash:"Dashboard",acct:"Financial Accounting",sal:"Salaries",exam:"External Exams",users:"User Management",set:"Settings"}[tab]||"";
+  const pageTitle={home:"Home",cashbook:"Daily Cash Book",classes:"Class Portal",ledgers:"Student Ledgers",analysis:"Payment Analysis",lessons:"Lesson Portal",dash:"Dashboard",acct:"Financial Accounting",sal:"Salaries & Payroll",exam:"External Exams",users:"User Management",set:"Settings"}[tab]||"";
   function logout(){
     // Superadmin exits silently — no audit trace, no logout notification
     if(!isProp&&!isSuper&&session?.name)addAudit("LOGOUT",`${session.name} logged out`,session.name);
@@ -731,7 +731,6 @@ function Portal(){
           {tab==="classes"&&<ClassPortal sec={effSec}/>}
           {tab==="ledgers"&&<Ledgers sec={effSec}/>}
           {tab==="analysis"&&<Analysis sec={effSec}/>}
-          {tab==="debt"&&isAdmin&&<DebtList sec={effSec}/>}
           {tab==="lessons"&&<Lessons sec={effSec}/>}
           {tab==="dash"&&isAdmin&&<Dash sec={effSec}/>}
           {tab==="acct"&&isAdmin&&<Acct/>}
@@ -1352,18 +1351,70 @@ function Acct(){
 }
 // SALARIES
 function Sal(){
-  const ctx=useApp();const[nm,setNm]=useState("");const[py,setPy]=useState("");const[msg,setMsg]=useState(null);const total=(ctx.salaries||[]).reduce((s,x)=>s+(x.netPay||0),0);
-  async function add(){if(!nm.trim()||!py)return;await ctx.saveSal({sid:uid(),name:nm.trim(),netPay:parseFloat(py),month:today().slice(0,7),created_at:new Date().toISOString()});ctx.addAudit("SALARY",`${nm.trim()} — ${N(parseFloat(py))}`,ctx.session?.name);setNm("");setPy("");setMsg({t:0,m:"Added."});setTimeout(()=>setMsg(null),2e3)}
+  const ctx=useApp();
+  const[nm,setNm]=useState("");const[role2,setRole2]=useState("");const[bank,setBank]=useState("");const[acctNo,setAcctNo]=useState("");const[gross,setGross]=useState("");const[deductions,setDeductions]=useState("");const[msg,setMsg]=useState(null);
+  const[selMonth,setSelMonth]=useState(today().slice(0,7));
+  const allSal=(ctx.salaries||[]);
+  const monthSal=allSal.filter(s=>s.month===selMonth);
+  const totalGross=monthSal.reduce((s,x)=>s+(x.grossPay||x.netPay||0),0);
+  const totalDed=monthSal.reduce((s,x)=>s+(x.deductions||0),0);
+  const totalNet=monthSal.reduce((s,x)=>s+(x.netPay||0),0);
+  const months=[...new Set(allSal.map(s=>s.month))].sort().reverse();
+  if(months.length>0&&!months.includes(selMonth)&&!months.includes(today().slice(0,7))){
+    // keep current month selectable
+  }
+  const availMonths=[...new Set([today().slice(0,7),...months])].sort().reverse();
+  async function add(){
+    if(!nm.trim()||!gross)return;
+    const g=parseFloat(gross)||0;const d=parseFloat(deductions)||0;const net=g-d;
+    if(net<=0){setMsg({t:1,m:"Net pay must be positive."});return}
+    await ctx.saveSal({sid:uid(),name:nm.trim(),role:role2.trim(),bank:bank.trim(),acctNo:acctNo.trim(),grossPay:g,deductions:d,netPay:net,month:selMonth,created_at:new Date().toISOString()});
+    ctx.addAudit("SALARY",`${nm.trim()} — Gross: ${N(g)}, Ded: ${N(d)}, Net: ${N(net)} [${selMonth}]`,ctx.session?.name);
+    setNm("");setRole2("");setBank("");setAcctNo("");setGross("");setDeductions("");
+    setMsg({t:0,m:"✓ Staff salary recorded."});setTimeout(()=>setMsg(null),3e3);
+  }
+  const fmtMonth=(m)=>{const[y,mo]=m.split("-");const mn=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];return`${mn[parseInt(mo)-1]} ${y}`};
   return<div className="fu">
-    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:14}}>Salaries Portal</h2>
-    {msg&&<div className="msg-ok">{msg.m}</div>}
-    <div className="card"><div className="sect">Add Staff</div><div className="fr">
-      <div className="fl" style={{flex:2}}><span className="flb">Full Name</span><input value={nm} onChange={e=>setNm(e.target.value)} className="inp" placeholder="Staff full name"/></div>
-      <div className="fl" style={{flex:1}}><span className="flb">Net Pay ({'\u20A6'})</span><input type="number" value={py} onChange={e=>setPy(e.target.value)} className="inpm" placeholder="0.00"/></div>
-      <button className="btn btn-gold" onClick={add}>ADD STAFF</button>
-    </div></div>
-    <div className="card"><div className="fb" style={{marginBottom:10}}><div className="sect" style={{marginBottom:0}}>Staff List</div><div style={{fontFamily:"var(--ff-m)",fontSize:".78rem",color:"var(--navy)",fontWeight:700}}>Total Payroll: {N(total)}</div></div>
-    <div className="tw"><table><thead><tr><th>#</th><th>Name</th><th className="r">Net Pay</th><th>Month</th></tr></thead><tbody>{(ctx.salaries||[]).length===0&&<tr><td colSpan={4} className="er">No staff records.</td></tr>}{(ctx.salaries||[]).map((s,i)=><tr key={s.sid}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:500}}>{s.name}</td><td className="my">{N(s.netPay)}</td><td style={{color:"var(--muted)"}}>{s.month}</td></tr>)}</tbody></table></div></div>
+    <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:14}}>Salaries & Payroll</h2>
+    {msg&&<div className={msg.t?"msg-err":"msg-ok"}>{msg.m}</div>}
+    <div className="card" style={{background:"linear-gradient(135deg,var(--navy) 0%,var(--navy3) 100%)",border:"none",marginBottom:16}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+        <div style={{color:"var(--gold2)",fontSize:".75rem",fontWeight:700,textTransform:"uppercase",letterSpacing:1}}>Monthly Payroll Summary</div>
+        <select value={selMonth} onChange={e=>setSelMonth(e.target.value)} style={{background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",color:"#fff",padding:"6px 12px",borderRadius:6,fontSize:".78rem",fontFamily:"var(--ff-m)"}}>
+          {availMonths.map(m=><option key={m} value={m} style={{color:"#000"}}>{fmtMonth(m)}</option>)}
+        </select>
+      </div>
+      <div className="kg" style={{marginTop:14}}>
+        <div style={{background:"rgba(255,255,255,.06)",borderRadius:8,padding:"14px 16px"}}><div style={{fontSize:".64rem",fontWeight:700,textTransform:"uppercase",color:"rgba(255,255,255,.5)"}}>Gross Pay</div><div style={{fontFamily:"var(--ff-m)",fontSize:"1.1rem",fontWeight:800,color:"var(--gold)",marginTop:5}}>{N(totalGross)}</div></div>
+        <div style={{background:"rgba(255,255,255,.06)",borderRadius:8,padding:"14px 16px"}}><div style={{fontSize:".64rem",fontWeight:700,textTransform:"uppercase",color:"rgba(255,255,255,.5)"}}>Deductions</div><div style={{fontFamily:"var(--ff-m)",fontSize:"1.1rem",fontWeight:800,color:"var(--red)",marginTop:5}}>{N(totalDed)}</div></div>
+        <div style={{background:"rgba(255,255,255,.06)",borderRadius:8,padding:"14px 16px"}}><div style={{fontSize:".64rem",fontWeight:700,textTransform:"uppercase",color:"rgba(255,255,255,.5)"}}>Net Payroll</div><div style={{fontFamily:"var(--ff-m)",fontSize:"1.1rem",fontWeight:800,color:"#86efac",marginTop:5}}>{N(totalNet)}</div></div>
+        <div style={{background:"rgba(255,255,255,.06)",borderRadius:8,padding:"14px 16px"}}><div style={{fontSize:".64rem",fontWeight:700,textTransform:"uppercase",color:"rgba(255,255,255,.5)"}}>Staff Count</div><div style={{fontFamily:"var(--ff-m)",fontSize:"1.1rem",fontWeight:800,color:"#93c5fd",marginTop:5}}>{monthSal.length}</div></div>
+      </div>
+    </div>
+    <div className="card"><div className="sect">Add Staff Salary — {fmtMonth(selMonth)}</div>
+      <div className="gf2">
+        <div className="fl"><span className="flb">Full Name</span><input value={nm} onChange={e=>setNm(e.target.value)} className="inp" placeholder="Staff full name"/></div>
+        <div className="fl"><span className="flb">Role / Position</span><input value={role2} onChange={e=>setRole2(e.target.value)} className="inp" placeholder="e.g. Teacher, Cleaner"/></div>
+        <div className="fl"><span className="flb">Bank Name</span><input value={bank} onChange={e=>setBank(e.target.value)} className="inp" placeholder="e.g. GTBank"/></div>
+        <div className="fl"><span className="flb">Account No</span><input value={acctNo} onChange={e=>setAcctNo(e.target.value)} className="inp" placeholder="0123456789"/></div>
+        <div className="fl"><span className="flb">Gross Pay ({"\u20A6"})</span><input type="number" value={gross} onChange={e=>setGross(e.target.value)} className="inpm" placeholder="0.00"/></div>
+        <div className="fl"><span className="flb">Deductions ({"\u20A6"})</span><input type="number" value={deductions} onChange={e=>setDeductions(e.target.value)} className="inpm" placeholder="0.00"/></div>
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:14}}>
+        <div style={{fontFamily:"var(--ff-m)",fontSize:".82rem",color:"var(--navy)"}}>Net Pay: <strong style={{color:"var(--green)"}}>{N(Math.max(0,(parseFloat(gross)||0)-(parseFloat(deductions)||0)))}</strong></div>
+        <button className="btn btn-gold" onClick={add}>ADD TO PAYROLL</button>
+      </div>
+    </div>
+    <div className="card"><div className="fb" style={{marginBottom:10}}><div className="sect" style={{marginBottom:0}}>Payroll for {fmtMonth(selMonth)}</div><button className="btn btn-gold btn-sm np" onClick={()=>window.print()}>🖨 Print Payroll</button></div>
+    <div className="tw"><table><thead><tr><th>#</th><th>Name</th><th>Role</th><th>Bank</th><th>Acct No</th><th className="r">Gross</th><th className="r">Ded.</th><th className="r">Net Pay</th><th>Date</th></tr></thead><tbody>{monthSal.length===0&&<tr><td colSpan={9} className="er">No salary records for {fmtMonth(selMonth)}.</td></tr>}{monthSal.map((s,i)=><tr key={s.sid}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:600}}>{s.name}</td><td style={{color:"var(--muted)",fontSize:".78rem"}}>{s.role||"—"}</td><td style={{fontSize:".76rem"}}>{s.bank||"—"}</td><td className="mn">{s.acctNo||"—"}</td><td className="my">{N(s.grossPay||s.netPay||0)}</td><td style={{fontFamily:"var(--ff-m)",textAlign:"right",color:"var(--red)"}}>{N(s.deductions||0)}</td><td className="my" style={{fontWeight:700}}>{N(s.netPay||0)}</td><td style={{color:"var(--muted)",fontSize:".72rem"}}>{fmtD(s.created_at?.slice(0,10))}</td></tr>)}</tbody>
+    <tfoot><tr style={{fontWeight:700,background:"var(--navy)",color:"#fff"}}><td colSpan={5} style={{color:"#fff",textAlign:"right",paddingRight:12}}>TOTALS</td><td style={{fontFamily:"var(--ff-m)",textAlign:"right",color:"var(--gold2)"}}>{N(totalGross)}</td><td style={{fontFamily:"var(--ff-m)",textAlign:"right",color:"var(--red)"}}>{N(totalDed)}</td><td style={{fontFamily:"var(--ff-m)",textAlign:"right",color:"var(--gold2)",fontWeight:800}}>{N(totalNet)}</td><td></td></tr></tfoot>
+    </table></div></div>
+    {months.length>1&&<div className="card"><div className="sect">Payroll History</div>
+      <div className="tw"><table><thead><tr><th>Month</th><th className="r">Staff</th><th className="r">Total Gross</th><th className="r">Total Deductions</th><th className="r">Total Net</th></tr></thead><tbody>
+      {months.map(m=>{const ms=allSal.filter(s=>s.month===m);const tg=ms.reduce((s,x)=>s+(x.grossPay||x.netPay||0),0);const td2=ms.reduce((s,x)=>s+(x.deductions||0),0);const tn=ms.reduce((s,x)=>s+(x.netPay||0),0);
+        return<tr key={m} style={{cursor:"pointer",background:m===selMonth?"var(--goldbg)":""}} onClick={()=>setSelMonth(m)}><td style={{fontWeight:600}}>{fmtMonth(m)}</td><td style={{fontFamily:"var(--ff-m)",textAlign:"right"}}>{ms.length}</td><td className="my">{N(tg)}</td><td style={{fontFamily:"var(--ff-m)",textAlign:"right",color:"var(--red)"}}>{N(td2)}</td><td className="my" style={{fontWeight:700}}>{N(tn)}</td></tr>})}
+      </tbody></table></div>
+    </div>}
   </div>;
 }
 // EXT EXAMS
@@ -1487,8 +1538,25 @@ function Settings(){
   function addCat(){if(!nc.trim()||(ctx.categories||[]).includes(nc.trim()))return;const u=[...(ctx.categories||[]),nc.trim()];ctx.setCategories(u);ctx.setTermCfg({...ctx.termCfg,activeCats:{...(ctx.termCfg?.activeCats||{}),[nc.trim()]:true}});setNc("");setMsg({t:0,m:`Category "${nc.trim()}" added. Click Save to persist.`});setTimeout(()=>setMsg(null),3e3)}
   function togCat(c){if(c==="Outstanding/Backlog"){setMsg({t:1,m:"Cannot disable Outstanding/Backlog."});setTimeout(()=>setMsg(null),2e3);return}ctx.setTermCfg({...ctx.termCfg,activeCats:{...(ctx.termCfg?.activeCats||{}),[c]:!(ctx.termCfg?.activeCats?.[c])}})}
   
-  async function addDP(){if(!dp.student.trim())return;await ctx.saveDP({did:uid(),...dp,amount:parseFloat(dp.amount)||0,date:today(),created_at:new Date().toISOString()});setDp(p=>({...p,student:"",amount:""}));setMsg({t:0,m:"Direct payment recorded."});setTimeout(()=>setMsg(null),2e3)}
-  async function addSch(){if(!sp.student.trim())return;await ctx.saveSch({scid:uid(),...sp,date:today(),created_at:new Date().toISOString()});setSp(p=>({...p,student:"",type:"Scholarship"}));setMsg({t:0,m:"Scholarship recorded."});setTimeout(()=>setMsg(null),2e3)}
+  async function addDP(){
+    if(!dp.student||!dp.class_name||!dp.category||!dp.amount)return;
+    const amt=parseFloat(dp.amount)||0;if(amt<=0)return;
+    const did=uid();
+    await ctx.saveDP({did,...dp,amount:amt,date:today(),created_at:new Date().toISOString()});
+    // Inject into student ledger so it reflects in Ledgers & Payment Analysis — but NOT in Cash Book
+    const up={...ctx.students};
+    if(up[dp.class_name]){
+      const idx=up[dp.class_name].findIndex(s=>s.name===dp.student);
+      if(idx>=0){
+        const cp=[...up[dp.class_name]];
+        cp[idx]={...cp[idx],payments:[...cp[idx].payments,{id:"DP-"+did,date:today(),category:dp.category,amount:amt,mode:"Direct to Proprietor",isPriorTerm:false,timestamp:Date.now()}]};
+        up[dp.class_name]=cp;ctx.setStudents(up);
+      }
+    }
+    ctx.addAudit("DIRECT_PAY",`${dp.student} [${dp.class_name}] — ${N(amt)} (${dp.category}) — Direct to Proprietor`,ctx.session?.name);
+    setDp(p=>({...p,student:"",amount:"",category:""}));setMsg({t:0,m:"✓ Direct payment recorded and reflected in student ledger."});setTimeout(()=>setMsg(null),3e3);
+  }
+  async function addSch(){if(!sp.student||!sp.class_name)return;await ctx.saveSch({scid:uid(),...sp,date:today(),created_at:new Date().toISOString()});ctx.addAudit("SCHOLARSHIP",`${sp.student} [${sp.class_name}] — ${sp.type}`,ctx.session?.name);setSp(p=>({...p,student:"",type:"Scholarship"}));setMsg({t:0,m:"✓ Scholarship recorded."});setTimeout(()=>setMsg(null),2e3)}
   
   function handleSig(s,file){
     if(!file)return;
@@ -1561,19 +1629,25 @@ function Settings(){
         </div>;
       })}
     </div>
-    <div className="card"><div className="sect">💼 Direct Payments & Scholarships</div>
-      <div className="fr" style={{marginBottom:10}}>
-        <div className="fl" style={{flex:2}}><input value={dp.student} onChange={e=>setDp({...dp,student:e.target.value})} className="inp" placeholder="Student name (Direct Pay)"/></div>
-        <div className="fl" style={{flex:1}}><select value={dp.class_name} onChange={e=>setDp({...dp,class_name:e.target.value})} className="sel"><option value="">— Class —</option>{allLoadedClasses.map(c=><option key={c}>{c}</option>)}</select></div>
-        <div className="fl"><input type="number" value={dp.amount} onChange={e=>setDp({...dp,amount:e.target.value})} className="inpm" placeholder="Amount" style={{width:100}}/></div>
-        <button className="btn btn-primary btn-sm" onClick={addDP}>RECORD DP</button>
+    <div className="card"><div className="sect">💼 Direct Payments to Proprietor</div>
+      <p className="hint" style={{marginBottom:10}}>Direct payments reflect in student ledgers & payment analysis but do NOT affect daily cashflow liquidity.</p>
+      <div className="gf2" style={{marginBottom:10}}>
+        <div className="fl"><span className="flb">Class</span><select value={dp.class_name} onChange={e=>{setDp({...dp,class_name:e.target.value,student:""})}} className="sel"><option value="">— Select Class —</option>{allLoadedClasses.sort((a,b)=>{const ai=CLASS_ORDER.indexOf(a),bi=CLASS_ORDER.indexOf(b);if(ai>=0&&bi>=0)return ai-bi;if(ai>=0)return -1;if(bi>=0)return 1;return a.localeCompare(b)}).map(c=><option key={c}>{c}</option>)}</select></div>
+        <div className="fl"><span className="flb">Student</span><select value={dp.student} onChange={e=>setDp({...dp,student:e.target.value})} className="sel" disabled={!dp.class_name}><option value="">— Select Student —</option>{(ctx.students[dp.class_name]||[]).map(s=><option key={s.name}>{s.name}</option>)}</select></div>
+        <div className="fl"><span className="flb">Fee Category</span><select value={dp.category||""} onChange={e=>setDp({...dp,category:e.target.value})} className="sel"><option value="">— Category —</option>{(ctx.categories||DEF_CATS).filter(c=>ctx.termCfg?.activeCats?.[c]!==false).map(c=><option key={c}>{c}</option>)}</select></div>
+        <div className="fl"><span className="flb">Amount ({"\u20A6"})</span><input type="number" value={dp.amount} onChange={e=>setDp({...dp,amount:e.target.value})} className="inpm" placeholder="0.00"/></div>
       </div>
-      <div className="fr">
-        <div className="fl" style={{flex:2}}><input value={sp.student} onChange={e=>setSp({...sp,student:e.target.value})} className="inp" placeholder="Student name (Scholarship)"/></div>
-        <div className="fl" style={{flex:1}}><select value={sp.class_name} onChange={e=>setSp({...sp,class_name:e.target.value})} className="sel"><option value="">— Class —</option>{allLoadedClasses.map(c=><option key={c}>{c}</option>)}</select></div>
-        <div className="fl"><select value={sp.type} onChange={e=>setSp({...sp,type:e.target.value})} className="sel"><option>Scholarship</option><option>Mercy of School</option></select></div>
-        <button className="btn btn-primary btn-sm" onClick={addSch}>RECORD SCH</button>
+      <button className="btn btn-primary btn-sm" onClick={addDP} disabled={!dp.student||!dp.class_name||!dp.category||!dp.amount}>RECORD DIRECT PAYMENT</button>
+      {(ctx.directPay||[]).length>0&&<div className="tw" style={{marginTop:12}}><table><thead><tr><th>#</th><th>Student</th><th>Class</th><th>Category</th><th className="r">Amount</th><th>Date</th></tr></thead><tbody>{(ctx.directPay||[]).slice(0,20).map((d,i)=><tr key={d.did}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:500}}>{d.student}</td><td>{d.class_name}</td><td>{d.category||"—"}</td><td className="my">{N(d.amount)}</td><td style={{color:"var(--muted)",fontSize:".72rem"}}>{fmtD(d.date)}</td></tr>)}</tbody></table></div>}
+    </div>
+    <div className="card"><div className="sect">🎓 Scholarships & Mercy Students</div>
+      <div className="gf2" style={{marginBottom:10}}>
+        <div className="fl"><span className="flb">Class</span><select value={sp.class_name} onChange={e=>{setSp({...sp,class_name:e.target.value,student:""})}} className="sel"><option value="">— Select Class —</option>{allLoadedClasses.sort((a,b)=>{const ai=CLASS_ORDER.indexOf(a),bi=CLASS_ORDER.indexOf(b);if(ai>=0&&bi>=0)return ai-bi;if(ai>=0)return -1;if(bi>=0)return 1;return a.localeCompare(b)}).map(c=><option key={c}>{c}</option>)}</select></div>
+        <div className="fl"><span className="flb">Student</span><select value={sp.student} onChange={e=>setSp({...sp,student:e.target.value})} className="sel" disabled={!sp.class_name}><option value="">— Select Student —</option>{(ctx.students[sp.class_name]||[]).map(s=><option key={s.name}>{s.name}</option>)}</select></div>
+        <div className="fl"><span className="flb">Type</span><select value={sp.type} onChange={e=>setSp({...sp,type:e.target.value})} className="sel"><option>Scholarship</option><option>Mercy of School</option></select></div>
       </div>
+      <button className="btn btn-primary btn-sm" onClick={addSch} disabled={!sp.student||!sp.class_name}>RECORD SCHOLARSHIP</button>
+      {(ctx.scholarships||[]).length>0&&<div className="tw" style={{marginTop:12}}><table><thead><tr><th>#</th><th>Student</th><th>Class</th><th>Type</th><th>Date</th></tr></thead><tbody>{(ctx.scholarships||[]).slice(0,20).map((s,i)=><tr key={s.scid}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:500}}>{s.student}</td><td>{s.class_name}</td><td><span className="badge bdo">{s.type}</span></td><td style={{color:"var(--muted)",fontSize:".72rem"}}>{fmtD(s.date)}</td></tr>)}</tbody></table></div>}
     </div>
     <div className="card" style={{borderTop:"3px solid var(--red)"}}><div className="sect">⚠️ Danger Zone</div>
       <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
