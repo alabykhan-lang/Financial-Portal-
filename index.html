@@ -259,6 +259,7 @@ const sbU=async(t,d)=>{const r=await fetch(`${SB}/rest/v1/${t}`,{method:"POST",h
 const sbD=async(t,q)=>{const r=await fetch(`${SB}/rest/v1/${t}?${q}`,{method:"DELETE",headers:SH});if(!r.ok)throw new Error(await r.text());return true};
 const SEC_A_BASE=["Crèche","KG1","KG2","Nursery 1","Nursery 2","Primary 1"];
 const SEC_B_BASE=["Primary 2","Primary 3","Primary 4","Primary 5","JSS1","JSS2","JSS3","SS1","SS2","SS3"];
+const CLASS_ORDER=[...SEC_A_BASE,...SEC_B_BASE];
 const getClsForSec=(sec,allStus)=>{
   const keys=Object.keys(allStus).filter(k=>k!=="_sorted");
   if(keys.length===0) return sec==="A"?SEC_A_BASE:SEC_B_BASE;
@@ -266,7 +267,13 @@ const getClsForSec=(sec,allStus)=>{
     const l=k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
     const isA=["creche","kg","nursery","primary 1","basic 1","grade 1"].some(x=>l.includes(x));
     return sec==="A"?isA:!isA;
-  }).sort();
+  }).sort((a,b)=>{
+    const ai=CLASS_ORDER.indexOf(a),bi=CLASS_ORDER.indexOf(b);
+    if(ai>=0&&bi>=0)return ai-bi;
+    if(ai>=0)return -1;
+    if(bi>=0)return 1;
+    return a.localeCompare(b);
+  });
 };
 const FEE_GROUPS=[
   {label:"Crèche",classes:["Crèche"]},
@@ -1168,6 +1175,7 @@ function Analysis({sec}){
   const[cat,setCat]=useState(cats[0]||"");
   const list=ctx.students[sc]||[];
   const sp=ctx.schoolProfile||{};
+  const target=((ctx.feeTargets||{})[sc]||{})[cat]||0;
   const an=list.map(s=>{const p=(s.payments||[]).filter(x=>x.category===cat).reduce((sum,x)=>sum+x.amount,0);return{...s,paid:p,ok:target>0&&p>=target,owing:target>0?Math.max(0,target-p):0}});
   const totalR=an.reduce((s,a)=>s+a.paid,0);const pC=an.filter(a=>a.ok).length;const oC=an.filter(a=>!a.ok&&target>0).length;const tO=an.reduce((s,a)=>s+a.owing,0);
   function doPrint(){window.print()}
