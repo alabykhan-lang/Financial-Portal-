@@ -263,7 +263,7 @@ const getClsForSec=(sec,allStus)=>{
   const keys=Object.keys(allStus).filter(k=>k!=="_sorted");
   if(keys.length===0) return sec==="A"?SEC_A_BASE:SEC_B_BASE;
   return keys.filter(k=>{
-    const l=k.toLowerCase();
+    const l=k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
     const isA=["creche","kg","nursery","primary 1","basic 1","grade 1"].some(x=>l.includes(x));
     return sec==="A"?isA:!isA;
   }).sort();
@@ -358,8 +358,8 @@ function Prov({children}){
         raw.forEach(s=>{
           const cls=mapKey(s.class_key); if(!cls)return;
           if(!mapped[cls])mapped[cls]=[];
-          if(!mapped[cls].find(x=>x.admno===s.admno))
-            mapped[cls].push({name:s.name||"",admno:s.admno,gender:s.gender||"",supaId:s.id,payments:[],arrears:0});
+          if(!mapped[cls].find(x=>x.supaId===s.id))
+            mapped[cls].push({name:s.name||"",admno:s.admno||"",gender:s.gender||"",supaId:s.id,payments:[],arrears:0});
         });
       }catch(se){
         console.warn("Students table load failed:",se.message);
@@ -490,8 +490,8 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
       raw.forEach(s=>{
         const cls=mapKey(s.class_key); if(!cls)return;
         if(!mapped[cls])mapped[cls]=[];
-        if(!mapped[cls].find(x=>x.admno===s.admno))
-          mapped[cls].push({name:s.name||"",admno:s.admno,gender:s.gender||"",supaId:s.id,payments:[],arrears:0});
+        if(!mapped[cls].find(x=>x.supaId===s.id))
+          mapped[cls].push({name:s.name||"",admno:s.admno||"",gender:s.gender||"",supaId:s.id,payments:[],arrears:0});
       });
       Object.keys(mapped).forEach(cls=>{if(Array.isArray(mapped[cls]))mapped[cls].sort((a,b)=>a.name.localeCompare(b.name))});
       
@@ -841,7 +841,7 @@ function HomePage({sec,setTab}){
 function CashBook({sec}){
   const ctx=useApp();
   const isAdmin=ctx.session?.role==="admin"||ctx.session?.role==="proprietor"||ctx.session?.role==="superadmin";
-  const classes=sec==="A"?SEC_A_BASE:SEC_B_BASE;
+  const classes=useMemo(()=>getClsForSec(sec,ctx.students),[sec,ctx.students]);
   const entries=useMemo(()=>(ctx.cashBook||[]).filter(e=>e.section===sec).sort((a,b)=>(a.date||"").localeCompare(b.date||"")||a.timestamp-b.timestamp),[ctx.cashBook,sec]);
   const activeCats=(ctx.categories||DEF_CATS).filter(c=>ctx.termCfg?.activeCats?.[c]!==false);
   const[date,setDate]=useState(today());const[cl,setCl]=useState("");const[stu,setStu]=useState("");const[cat,setCat]=useState("");const[amt,setAmt]=useState("");const[mode,setMode]=useState("Cash");const[type,setType]=useState("Income");const[desc,setDesc]=useState("");const[fd,setFd]=useState(today());const[showR,setShowR]=useState(false);const[rId,setRId]=useState("");const[msg,setMsg]=useState(null);const[saving,setSaving]=useState(false);
