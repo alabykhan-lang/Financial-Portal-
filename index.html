@@ -1294,8 +1294,20 @@ function Lessons({sec}){
       <div className="kpi" style={{"--accent":pr>=0?"var(--blue)":"var(--red)"}}><div className="kl">Proprietor Share</div><div className="kv" style={{color:pr>=0?"var(--blue)":"var(--red)"}}>{N(Math.max(0,gt-tp))}</div></div>
       {isAdmin&&gtAll!==gt&&<div className="kpi" style={{"--accent":"var(--amber)"}}><div className="kl">Combined (A+B)</div><div className="kv">{N(gtAll)}</div><div className="ksub">All sections</div></div>}
     </div>
-    {isAdmin&&gtAll>0&&<button className="btn btn-green" onClick={close}>✓ CLOSE WEEK & ARCHIVE (All Sections)</button>}
-    {!isAdmin&&<p className="hint">Only Admin can approve week close.</p>}
+    <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+      {isAdmin&&<button className="btn btn-save" onClick={async()=>{
+        await ctx.saveAllSettings(ctx.categories,ctx.feeTargets,ctx.termCfg,ctx.lessonCur,ctx.schoolProfile,ctx.aiConfig);
+        ctx.addAudit&&ctx.addAudit("LESSON_SAVE",`Progress saved — ${N(gt)} Section ${activeSec}`,ctx.session?.name);
+        const el=document.getElementById("lesson-save-msg");if(el){el.style.display="flex";setTimeout(()=>{el.style.display="none"},3000);}
+      }}>💾 SAVE PROGRESS</button>}
+      {isAdmin&&gtAll>0&&<button className="btn btn-green" onClick={close}>✓ CLOSE WEEK & ARCHIVE (All Sections)</button>}
+      {!isAdmin&&<button className="btn btn-save" onClick={async()=>{
+        await ctx.saveAllSettings(ctx.categories,ctx.feeTargets,ctx.termCfg,ctx.lessonCur,ctx.schoolProfile,ctx.aiConfig);
+        const el=document.getElementById("lesson-save-msg");if(el){el.style.display="flex";setTimeout(()=>{el.style.display="none"},3000);}
+      }}>💾 SAVE PROGRESS</button>}
+    </div>
+    <div id="lesson-save-msg" className="msg-ok" style={{display:"none",marginTop:8}}>✓ Lesson progress saved to database.</div>
+    {!isAdmin&&<p className="hint" style={{marginTop:4}}>Only Admin can close &amp; archive the week.</p>}
     </div>
     {(ctx.lessonWeeks||[]).length>0&&<div className="card"><div className="sect">Archived Weeks</div><div className="tw"><table><thead><tr><th>Date Closed</th><th className="r">Total</th><th className="r">Teachers</th><th className="r">Rate/Teacher</th><th className="r">Proprietor</th></tr></thead><tbody>{[...(ctx.lessonWeeks||[])].reverse().map(a=><tr key={a.wid}><td>{fmtD(a.date)}</td><td className="my">{N(a.grandTotal)}</td><td className="my">{N(a.totalTeacherPay)}</td><td className="my">{N(a.teacherRate)}</td><td className={a.proprietorShare>=0?"my":"mr"}>{N(a.proprietorShare)}</td></tr>)}</tbody></table></div></div>}
   </div>;
@@ -1353,6 +1365,40 @@ function Acct(){
 function Sal(){
   const ctx=useApp();
   const[nm,setNm]=useState("");const[role2,setRole2]=useState("");const[bank,setBank]=useState("");const[acctNo,setAcctNo]=useState("");const[gross,setGross]=useState("");const[deductions,setDeductions]=useState("");const[msg,setMsg]=useState(null);
+  // Staff Roster state — persisted in localStorage
+  const[roster,setRoster]=useState(()=>LS.g("ssfp_roster",[]));
+  const[showRoster,setShowRoster]=useState(true);
+  const[rosterName,setRosterName]=useState("");
+  const[rosterRole,setRosterRole]=useState("");
+  const[rosterGross,setRosterGross]=useState("");
+  const[rosterDed,setRosterDed]=useState("");
+  function addRosterEntry(){
+    if(!rosterName.trim())return;
+    const entry={rid:uid(),name:rosterName.trim(),role:rosterRole.trim(),gross:parseFloat(rosterGross)||0,ded:parseFloat(rosterDed)||0};
+    const nr=[...roster,entry];setRoster(nr);LS.s("ssfp_roster",nr);
+    setRosterName("");setRosterRole("");setRosterGross("");setRosterDed("");
+  }
+  function removeRosterEntry(rid){
+    if(!window.confirm("Remove this staff from the roster?"))return;
+    const nr=roster.filter(r=>r.rid!==rid);setRoster(nr);LS.s("ssfp_roster",nr);
+  }
+  async function quickAddToPayroll(r){
+    const g=r.gross||0;const d=r.ded||0;const net=g-d;
+    if(net<=0){setMsg({t:1,m:`Net pay for ${r.name} must be positive. Edit their roster entry.`});setTimeout(()=>setMsg(null),4e3);return;}
+    await ctx.saveSal({sid:uid(),name:r.name,role:r.role,bank:"",acctNo:"",grossPay:g,deductions:d,netPay:net,month:selMonth,created_at:new Date().toISOString()});
+    ctx.addAudit("SALARY",`${r.name} — Gross: ${N(g)}, Net: ${N(net)} [${selMonth}]`,ctx.session?.name);
+    setMsg({t:0,m:`✓ ${r.name} added to ${selMonth} payroll.`});setTimeout(()=>setMsg(null),3e3);
+  }
+  async function addAllToPayroll(){
+    const toAdd=roster.filter(r=>!allSal.some(s=>s.name===r.name&&s.month===selMonth)&&(r.gross||0)-(r.ded||0)>0);
+    if(!toAdd.length){setMsg({t:2,m:"All roster staff are already added for this month (or have invalid net pay)."});setTimeout(()=>setMsg(null),4e3);return;}
+    for(const r of toAdd){
+      const g=r.gross||0;const d=r.ded||0;const net=g-d;
+      await ctx.saveSal({sid:uid(),name:r.name,role:r.role,bank:"",acctNo:"",grossPay:g,deductions:d,netPay:net,month:selMonth,created_at:new Date().toISOString()});
+    }
+    ctx.addAudit("SALARY_BULK",`${toAdd.length} staff added for ${selMonth}`,ctx.session?.name);
+    setMsg({t:0,m:`✓ ${toAdd.length} staff added to ${selMonth} payroll.`});setTimeout(()=>setMsg(null),4e3);
+  }
   const[selMonth,setSelMonth]=useState(today().slice(0,7));
   const allSal=(ctx.salaries||[]);
   const monthSal=allSal.filter(s=>s.month===selMonth);
@@ -1390,6 +1436,40 @@ function Sal(){
         <div style={{background:"rgba(255,255,255,.06)",borderRadius:8,padding:"14px 16px"}}><div style={{fontSize:".64rem",fontWeight:700,textTransform:"uppercase",color:"rgba(255,255,255,.5)"}}>Net Payroll</div><div style={{fontFamily:"var(--ff-m)",fontSize:"1.1rem",fontWeight:800,color:"#86efac",marginTop:5}}>{N(totalNet)}</div></div>
         <div style={{background:"rgba(255,255,255,.06)",borderRadius:8,padding:"14px 16px"}}><div style={{fontSize:".64rem",fontWeight:700,textTransform:"uppercase",color:"rgba(255,255,255,.5)"}}>Staff Count</div><div style={{fontFamily:"var(--ff-m)",fontSize:"1.1rem",fontWeight:800,color:"#93c5fd",marginTop:5}}>{monthSal.length}</div></div>
       </div>
+    </div>
+    {/* STAFF ROSTER PANEL */}
+    <div className="card" style={{borderTop:"3px solid var(--gold)"}}>
+      <div className="fb" style={{marginBottom:8}}>
+        <div className="sect" style={{marginBottom:0}}>👥 Staff Roster <span className="badge bdn" style={{fontSize:".54rem",verticalAlign:"middle",marginLeft:6}}>Persistent</span></div>
+        <button className="btn btn-ghost btn-xs" onClick={()=>setShowRoster(r=>!r)}>{showRoster?"▲ Collapse":"▼ Manage Roster"}</button>
+      </div>
+      <p className="hint" style={{marginBottom:8}}>Build your staff list once. Use "→ Add to Payroll" each month — or add all at once.</p>
+      {showRoster&&<div className="fr" style={{marginBottom:12,flexWrap:"wrap"}}>
+        <div className="fl" style={{flex:2,minWidth:140}}><span className="flb">Staff Name</span><input value={rosterName} onChange={e=>setRosterName(e.target.value)} className="inp" placeholder="Full name" onKeyDown={e=>e.key==="Enter"&&addRosterEntry()}/></div>
+        <div className="fl" style={{flex:2,minWidth:130}}><span className="flb">Role / Position</span><input value={rosterRole} onChange={e=>setRosterRole(e.target.value)} className="inp" placeholder="e.g. Teacher" onKeyDown={e=>e.key==="Enter"&&addRosterEntry()}/></div>
+        <div className="fl" style={{minWidth:120}}><span className="flb">Default Gross (₦)</span><input type="number" value={rosterGross} onChange={e=>setRosterGross(e.target.value)} className="inpm" placeholder="0.00" style={{width:"100%"}}/></div>
+        <div className="fl" style={{minWidth:110}}><span className="flb">Default Ded. (₦)</span><input type="number" value={rosterDed} onChange={e=>setRosterDed(e.target.value)} className="inpm" placeholder="0.00" style={{width:"100%"}}/></div>
+        <button className="btn btn-gold" style={{alignSelf:"flex-end"}} onClick={addRosterEntry}>＋ ADD STAFF</button>
+      </div>}
+      {roster.length===0&&<p className="hint" style={{textAlign:"center",padding:"8px 0"}}>No staff in roster yet. Add staff names above.</p>}
+      {roster.length>0&&<div className="tw"><table><thead><tr><th>#</th><th>Name</th><th>Role</th><th className="r">Default Gross</th><th className="r">Default Ded.</th><th className="r">Default Net</th><th>Actions</th></tr></thead>
+      <tbody>{roster.map((r,i)=>{const alreadyAdded=allSal.some(s=>s.name===r.name&&s.month===selMonth);return<tr key={r.rid}>
+        <td style={{color:"var(--muted)",fontSize:".75rem"}}>{i+1}</td>
+        <td style={{fontWeight:600}}>{r.name}</td>
+        <td style={{color:"var(--muted)",fontSize:".78rem"}}>{r.role||"—"}</td>
+        <td className="my">{N(r.gross||0)}</td>
+        <td style={{fontFamily:"var(--ff-m)",textAlign:"right",color:"var(--red)"}}>{N(r.ded||0)}</td>
+        <td className="my" style={{fontWeight:700}}>{N((r.gross||0)-(r.ded||0))}</td>
+        <td><div style={{display:"flex",gap:5}}>
+          {alreadyAdded?<span className="badge bdg" style={{fontSize:".6rem"}}>✓ Added</span>:<button className="btn btn-gold btn-xs" onClick={()=>quickAddToPayroll(r)}>→ Payroll</button>}
+          <button className="btn btn-red btn-xs" onClick={()=>removeRosterEntry(r.rid)} title="Remove from roster">🗑</button>
+        </div></td>
+      </tr>;})}
+      </tbody></table></div>}
+      {roster.length>0&&<div style={{marginTop:10,display:"flex",gap:8,flexWrap:"wrap"}}>
+        <button className="btn btn-primary btn-sm" onClick={addAllToPayroll}>⚡ Add All Staff → {fmtMonth(selMonth)}</button>
+        <span className="hint" style={{alignSelf:"center"}}>Skips staff already added this month.</span>
+      </div>}
     </div>
     <div className="card"><div className="sect">Add Staff Salary — {fmtMonth(selMonth)}</div>
       <div className="gf2">
