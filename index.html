@@ -1747,13 +1747,122 @@ function Settings(){
       <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
         <button className="btn btn-red btn-sm" onClick={async()=>{if(await ctx.wipeData())alert("✓ Data wiped.")}}>🗑 WIPE TRANSACTION DATA</button>
         <button className="btn btn-outline btn-sm" onClick={()=>{
-          const data={cashBook:ctx.cashBook,auditLog:ctx.auditLog,notifications:ctx.notifs,students:ctx.students,settings:{categories:ctx.categories,feeTargets:ctx.feeTargets,termCfg:ctx.termCfg,lessonCur:ctx.lessonCur,schoolProfile:ctx.schoolProfile}};
+          const data={cashBook:ctx.cashBook,salaries:ctx.salaries,extExams:ctx.extExams,lessonWeeks:ctx.lessonWeeks,directPay:ctx.directPay,scholarships:ctx.scholarships,auditLog:ctx.auditLog,notifications:ctx.notifs,students:ctx.students,settings:{categories:ctx.categories,feeTargets:ctx.feeTargets,termCfg:ctx.termCfg,lessonCur:ctx.lessonCur,schoolProfile:ctx.schoolProfile}};
           const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
           const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`backup_${today()}.json`;a.click();
-        }}>📥 DOWNLOAD BACKUP</button>
+        }}>📥 DOWNLOAD FULL BACKUP</button>
       </div>
       <p className="hint" style={{marginTop:8,cursor:"default"}} onClick={()=>setTaps(t=>t+1)}>Click "Wipe" to clear transactions. Click the text for developer mode.</p>
     </div>
+    <div className="card" style={{borderTop:"3px solid var(--blue)"}}>
+      <div className="sect">🔄 Data Recovery &amp; Cross-Device Sync</div>
+      <p className="hint" style={{marginBottom:12}}>Use these tools to recover entries that were saved on other devices but not yet in the cloud. <strong>Open this page on each device</strong> and click "Push Local Cache → Cloud". Then reload on any device to see all merged data.</p>
+      <LocalCacheSync/>
+    </div>
+  </div>;
+}
+// LOCAL CACHE → CLOUD RECOVERY TOOL
+function LocalCacheSync(){
+  const ctx=useApp();
+  const[status,setStatus]=useState(null);// null | {running,done,counts,errors}
+  const importRef=useRef();
+  async function pushLocalCache(){
+    if(!window.confirm("This will push all data from THIS device's local cache to the cloud database.\n\nSafe to run: existing cloud entries will NOT be overwritten — only missing ones will be added.\n\nContinue?"))return;
+    setStatus({running:true,done:false,counts:{},errors:[]});
+    const counts={};const errors=[];
+    // Helper: upsert a batch with a label
+    async function pushTable(label,lsKey,tableName,idField){
+      const rows=LS.g(lsKey,[]);
+      if(!rows||!rows.length){counts[label]=0;return;}
+      // Filter out rows that lack the required ID field
+      const valid=rows.filter(r=>r&&r[idField]);
+      if(!valid.length){counts[label]=0;return;}
+      try{
+        // Push in batches of 50 to avoid request size limits
+        let pushed=0;
+        for(let i=0;i<valid.length;i+=50){
+          const batch=valid.slice(i,i+50);
+          await sbU(tableName,batch);
+          pushed+=batch.length;
+        }
+        counts[label]=pushed;
+      }catch(e){
+        errors.push(`${label}: ${e.message||String(e)}`);
+        counts[label]=0;
+      }
+    }
+    await pushTable("Cash Book","ssfp_cashbook","ssfp_cashbook","entry_id");
+    await pushTable("Salaries","ssfp_sal","ssfp_salaries","sid");
+    await pushTable("Ext Exams","ssfp_ext","ssfp_ext_exams","eid");
+    await pushTable("Lesson Weeks","ssfp_lw","ssfp_lesson_weeks","wid");
+    await pushTable("Direct Payments","ssfp_dp","ssfp_direct_pay","did");
+    await pushTable("Scholarships","ssfp_sch","ssfp_scholarships","scid");
+    await pushTable("Audit Log","ssfp_al","ssfp_audit_log","aid");
+    // Push settings (roster, categories, etc.)
+    try{
+      const cats=LS.g("ssfp_cats",null);const ft=LS.g("ssfp_targets",null);const tc=LS.g("ssfp_term",null);const lc=LS.g("ssfp_lesson",null);const sp=LS.g("ssfp_profile",null);const ai=LS.g("ssfp_ai",null);const roster=LS.g("ssfp_roster",[]);
+      if(cats||ft||tc){
+        await ctx.saveAllSettings(cats||ctx.categories,ft||ctx.feeTargets,tc||ctx.termCfg,lc||ctx.lessonCur,sp||ctx.schoolProfile,ai||ctx.aiConfig,roster);
+        counts["Settings"]=1;
+      }else{counts["Settings"]=0;}
+    }catch(e){errors.push("Settings: "+e.message);}
+    setStatus({running:false,done:true,counts,errors});
+    // Trigger a refresh so newly synced data loads immediately
+    setTimeout(()=>ctx.refreshStudents(),800);
+  }
+  async function importBackup(file){
+    if(!file)return;
+    if(!window.confirm("Import backup from file?\n\nThis will UPSERT all entries from the backup file into the cloud database. Existing entries with the same ID will not be overwritten.\n\nContinue?"))return;
+    setStatus({running:true,done:false,counts:{},errors:[]});
+    const counts={};const errors=[];
+    try{
+      const text=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(file)});
+      const data=JSON.parse(text);
+      async function pushArray(label,arr,tableName,idField){
+        if(!arr||!arr.length){counts[label]=0;return;}
+        const valid=arr.filter(r=>r&&r[idField]);
+        if(!valid.length){counts[label]=0;return;}
+        try{
+          let pushed=0;
+          for(let i=0;i<valid.length;i+=50){await sbU(tableName,valid.slice(i,i+50));pushed+=50;}
+          counts[label]=Math.min(pushed,valid.length);
+        }catch(e){errors.push(`${label}: ${e.message||String(e)}`);counts[label]=0;}
+      }
+      await pushArray("Cash Book",data.cashBook,"ssfp_cashbook","entry_id");
+      await pushArray("Salaries",data.salaries,"ssfp_salaries","sid");
+      await pushArray("Ext Exams",data.extExams,"ssfp_ext_exams","eid");
+      await pushArray("Lesson Weeks",data.lessonWeeks,"ssfp_lesson_weeks","wid");
+      await pushArray("Direct Payments",data.directPay,"ssfp_direct_pay","did");
+      await pushArray("Scholarships",data.scholarships,"ssfp_scholarships","scid");
+      await pushArray("Audit Log",data.auditLog,"ssfp_audit_log","aid");
+    }catch(e){errors.push("File parse error: "+e.message);}
+    setStatus({running:false,done:true,counts,errors});
+    setTimeout(()=>ctx.refreshStudents(),800);
+    // Reset file input
+    if(importRef.current)importRef.current.value="";
+  }
+  const totalPushed=status?.counts?Object.values(status.counts).reduce((s,v)=>s+v,0):0;
+  return <div>
+    <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:12}}>
+      <button className="btn btn-primary" onClick={pushLocalCache} disabled={status?.running} style={{background:"var(--blue)"}}>
+        {status?.running?"⏳ Syncing…":"☁ Push THIS Device's Cache → Cloud"}
+      </button>
+      <div>
+        <input ref={importRef} type="file" accept=".json" style={{display:"none"}} onChange={e=>e.target.files[0]&&importBackup(e.target.files[0])}/>
+        <button className="btn btn-outline" onClick={()=>importRef.current?.click()} disabled={status?.running}>
+          📂 Import Backup from Another Device
+        </button>
+      </div>
+    </div>
+    {status?.running&&<div className="msg-info">⏳ Uploading local cache to Supabase… please wait.</div>}
+    {status?.done&&<div style={{marginTop:8}}>
+      {status.errors.length===0
+        ?<div className="msg-ok">✅ Sync complete! {totalPushed} entries pushed to cloud.<br/><span style={{fontSize:".78rem",opacity:.8}}>{Object.entries(status.counts).filter(([,v])=>v>0).map(([k,v])=>`${k}: ${v}`).join(" · ")}</span><br/><span style={{fontSize:".75rem",opacity:.7}}>Reload the page or tap ↻ Sync to see merged data from all devices.</span></div>
+        :<div><div className="msg-warn">⚠ Sync completed with {status.errors.length} error(s). {totalPushed} entries pushed.<br/><span style={{fontSize:".76rem"}}>{status.errors.join(" | ")}</span></div>
+        {Object.entries(status.counts).some(([,v])=>v>0)&&<div className="msg-ok" style={{marginTop:6}}>✓ Successfully pushed: {Object.entries(status.counts).filter(([,v])=>v>0).map(([k,v])=>`${k}(${v})`).join(", ")}</div>}
+        </div>}
+    </div>}
+    <p className="hint" style={{marginTop:8}}>💡 <strong>How to merge entries from all devices:</strong> Open this page on Device 1 → Click "Push Cache → Cloud". Then open on Device 2 → Click again. Repeat for each device. Finally reload on any device — all entries will be visible.</p>
   </div>;
 }
 try {
