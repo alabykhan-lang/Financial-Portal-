@@ -525,6 +525,10 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
   const saveLW=async w=>{try{await sbU("ssfp_lesson_weeks",[w]);setDbWriteErr(null)}catch(err){const msg=err?.message||String(err);console.error("saveLW failed:",msg);setDbWriteErr("⚠ Lesson Week DB save failed: "+msg)};setLessonWeeks(p=>{const n=[...p,w];LS.s("ssfp_lw",n);return n})};
   const saveDP=async d=>{try{await sbU("ssfp_direct_pay",[d]);setDbWriteErr(null)}catch(err){const msg=err?.message||String(err);console.error("saveDP failed:",msg);setDbWriteErr("⚠ Direct Pay DB save failed: "+msg)};setDirectPay(p=>{const n=[...p,d];LS.s("ssfp_dp",n);return n})};
   const saveSch=async s=>{try{await sbU("ssfp_scholarships",[s]);setDbWriteErr(null)}catch(err){const msg=err?.message||String(err);console.error("saveSch failed:",msg);setDbWriteErr("⚠ Scholarship DB save failed: "+msg)};setScholarships(p=>{const n=[...p,s];LS.s("ssfp_sch",n);return n})};
+  const deleteSch=useCallback(async(scid)=>{try{await sbD("ssfp_scholarships",`scid=eq.${scid}`)}catch(e){console.warn("deleteSch:",e)};
+    setScholarships(p=>{const n=p.filter(s=>s.scid!==scid);LS.s("ssfp_sch",n);return n});},[]);
+  const deleteDP=useCallback(async(did)=>{try{await sbD("ssfp_direct_pay",`did=eq.${did}`)}catch(e){console.warn("deleteDP:",e)};
+    setDirectPay(p=>{const n=p.filter(d=>d.did!==did);LS.s("ssfp_dp",n);return n});},[]);
   const saveStudent=async(stu)=>{
     const row={name:stu.name,class_key:stu.class_name.toLowerCase().replace(/\s+/g,"-").replace(/è/g,"e"),admno:stu.admno||uid().slice(0,6).toUpperCase(),gender:stu.gender||""};
     try{await sbU("students",[row]);await refreshStudents()}catch(e){console.error("Student save failed:",e);throw e}
@@ -539,7 +543,7 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
     const classes=section?getClsForSec(section,students):Object.keys(students).filter(k=>k!=="_sorted");
     classes.forEach(c=>{
       const stus=students[c]||[];const targets=feeTargets[c]||{};const active=categories.filter(cat=>termCfg?.activeCats?.[cat]!==false);stus.forEach(s=>{const catPaid={};(s.payments||[]).forEach(p=>{catPaid[p.category]=(catPaid[p.category]||0)+p.amount});let totalOwed=0;let totalPaid=0;active.forEach(cat=>{const t=targets[cat]||0;const p=catPaid[cat]||0;totalPaid+=p;if(t>0)totalOwed+=Math.max(0,t-p)});if(totalOwed>0)list.push({name:s.name,class:c,paid:totalPaid,owed:totalOwed,admno:s.admno})})});return list.sort((a,b)=>b.owed-a.owed)},[students,feeTargets,categories,termCfg]);
-  return <Ctx.Provider value={{session,setSession,dbOk,setDbOk,syncMsg,setSyncMsg,debugInfo,setDebugInfo,fetchErr,setFetchErr,students,setStudents,cashBook,setCashBook,categories,setCategories,feeTargets,setFeeTargets,salaries,setSalaries,extExams,setExtExams,lessonWeeks,setLessonWeeks,lessonCur,setLessonCur,termCfg,setTermCfg,directPay,setDirectPay,scholarships,setScholarships,auditLog,setAuditLog,notifs,setNotifs,schoolProfile,setSchoolProfile,aiConfig,setAiConfig,saveAllSettings,saveCashEntry,markReversed,addAudit,addNotif,runAIAudit,refreshStudents,dbWriteErr,setDbWriteErr,saveSal,saveExt,saveLW,saveDP,saveSch,saveStudent,deleteStudent,wipeData,getDebtList}}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{session,setSession,dbOk,setDbOk,syncMsg,setSyncMsg,debugInfo,setDebugInfo,fetchErr,setFetchErr,students,setStudents,cashBook,setCashBook,categories,setCategories,feeTargets,setFeeTargets,salaries,setSalaries,extExams,setExtExams,lessonWeeks,setLessonWeeks,lessonCur,setLessonCur,termCfg,setTermCfg,directPay,setDirectPay,scholarships,setScholarships,auditLog,setAuditLog,notifs,setNotifs,schoolProfile,setSchoolProfile,aiConfig,setAiConfig,saveAllSettings,saveCashEntry,markReversed,addAudit,addNotif,runAIAudit,refreshStudents,dbWriteErr,setDbWriteErr,saveSal,saveExt,saveLW,saveDP,saveSch,deleteSch,deleteDP,saveStudent,deleteStudent,wipeData,getDebtList}}>{children}</Ctx.Provider>;
 }
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
@@ -851,6 +855,13 @@ function HomePage({sec,setTab}){
       </div>)}
     </div>}
     <div className="msg-info">ℹ <strong>Audit Integrity:</strong> Cash Book entries are immutable. Use "Post Reversal" to correct errors — this creates a counter-entry preserving the full audit trail.</div>
+    <div className="card" style={{borderTop:"3px solid var(--blue)",marginTop:4}}>
+      <div className="fb" style={{marginBottom:8}}>
+        <div className="sect" style={{marginBottom:0}}>☁ Offline Data Recovery</div>
+        <span className="hint">Run on each device to push local entries to cloud</span>
+      </div>
+      <LocalCacheSync compact={true}/>
+    </div>
   </div>;
 }
 // CASH BOOK
@@ -1042,11 +1053,12 @@ function Ledgers({sec}){
   const cats=(ctx.categories||DEF_CATS).filter(c=>ctx.termCfg?.activeCats?.[c]!==false&&c!=="Outstanding/Backlog");
   const classTargets=(ctx.feeTargets||{})[sc]||{};
   const allPaid=cats.every(c=>{const t=classTargets[c]||0;return t===0||(catP[c]||0)>=t});
-  // Fix: use useEffect to print AFTER React renders the receipt
+  // Scholarship/Mercy status for this student
+  const scholarInfo=(ctx.scholarships||[]).find(x=>x.student===ss&&x.class_name===sc)||null;
   useEffect(()=>{if(viewRcp&&printing){const t=setTimeout(()=>{window.print();setPrinting(false)},350);return()=>clearTimeout(t)}},[viewRcp,printing]);
   function makeReceiptId(){const d=new Date();const yr=d.getFullYear().toString().slice(-2);const mo=String(d.getMonth()+1).padStart(2,"0");const dy=String(d.getDate()).padStart(2,"0");const rnd=Math.floor(Math.random()*10000).toString().padStart(4,"0");return`WTS/${yr}${mo}${dy}/${rnd}`}
-  function openReceipt(type,payments,total,category){setViewRcp({type,student:stu,cls:sc,payments,total,receiptId:makeReceiptId(),issuedBy:ctx.session?.name,issuedAt:new Date().toISOString(),isPropPay:isPropUser,category:category||null});setPrinting(false);}
-  function printReceipt(type,payments,total,category){setViewRcp({type,student:stu,cls:sc,payments,total,receiptId:makeReceiptId(),issuedBy:ctx.session?.name,issuedAt:new Date().toISOString(),isPropPay:isPropUser,category:category||null});setPrinting(true);}
+  function openReceipt(type,payments,total,category){setViewRcp({type,student:stu,cls:sc,payments,total,receiptId:makeReceiptId(),issuedBy:ctx.session?.name,issuedAt:new Date().toISOString(),isPropPay:isPropUser,category:category||null,scholarInfo});setPrinting(false);}
+  function printReceipt(type,payments,total,category){setViewRcp({type,student:stu,cls:sc,payments,total,receiptId:makeReceiptId(),issuedBy:ctx.session?.name,issuedAt:new Date().toISOString(),isPropPay:isPropUser,category:category||null,scholarInfo});setPrinting(true);}
   // Group positive payments by category for per-category receipts
   const paysByCat={};posPays.forEach(p=>{if(!paysByCat[p.category])paysByCat[p.category]=[];paysByCat[p.category].push(p)});
   return<div className="fu">
@@ -1059,7 +1071,7 @@ function Ledgers({sec}){
       <div className="fb" style={{marginBottom:14}}>
         <div>
           <div style={{fontFamily:"var(--ff-d)",fontSize:"1.05rem",color:"var(--navy)",fontWeight:700}}>{stu.name}</div>
-          <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}><span className="badge bdb">{stu.admno}</span><span className="badge" style={{background:"var(--bg2)",color:"var(--slate)",border:"1px solid var(--border)"}}>{sc}</span>{allPaid&&<span className="badge bdg">✓ Fully Paid</span>}</div>
+          <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}><span className="badge bdb">{stu.admno}</span><span className="badge" style={{background:"var(--bg2)",color:"var(--slate)",border:"1px solid var(--border)"}}>{sc}</span>{allPaid&&<span className="badge bdg">✓ Fully Paid</span>}{scholarInfo&&<span className="badge bdo">🎓 {scholarInfo.type}</span>}</div>
         </div>
         <div style={{padding:"10px 16px",background:"var(--greenbg)",borderRadius:8,textAlign:"center",border:"1px solid var(--greenbdr)"}}><div style={{fontSize:".62rem",fontWeight:700,textTransform:"uppercase",color:"var(--green)"}}>Total Paid</div><div style={{fontFamily:"var(--ff-m)",fontWeight:800,color:"var(--green)",fontSize:"1rem",marginTop:3}}>{N(total)}</div></div>
       </div>
@@ -1105,10 +1117,12 @@ function Ledgers({sec}){
 // PROFESSIONAL RECEIPT DOCUMENT COMPONENT
 function ReceiptDoc({viewRcp,sec,sp,bSig,adminSig,ctx}){
   const schoolName=sp.name||SCHOOL_NAME;
+  const hasDirectPay=(viewRcp.payments||[]).some(p=>p.mode==="Direct to Proprietor");
   const titleMap={tuition:"OFFICIAL TUITION FEE RECEIPT",single:"PAYMENT RECEIPT",category:"CATEGORY PAYMENT RECEIPT",all:"CONSOLIDATED PAYMENT STATEMENT"};
   const receiptTitle=titleMap[viewRcp.type]||"PAYMENT RECEIPT";
   const catLabel=viewRcp.category?viewRcp.category:null;
-  return<div className="rwrap" style={{maxWidth:560,margin:"0 auto",background:"#fff",padding:28,border:"2px solid #222"}}>
+  const si=viewRcp.scholarInfo||null;
+  return<div className="rwrap" style={{maxWidth:560,margin:"0 auto",background:"#fff",padding:28,border:"2px solid #222",pageBreakInside:"avoid"}}>
     {/* Header */}
     <div style={{textAlign:"center",borderBottom:"2.5px solid var(--navy)",paddingBottom:14,marginBottom:14}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginBottom:10}}>
@@ -1121,6 +1135,8 @@ function ReceiptDoc({viewRcp,sec,sp,bSig,adminSig,ctx}){
       </div>
       <div style={{display:"inline-block",background:"var(--navy)",color:"#fff",padding:"5px 20px",borderRadius:4,fontFamily:"var(--ff-m)",fontSize:".72rem",fontWeight:700,letterSpacing:1.2,marginTop:4}}>{receiptTitle}</div>
       {catLabel&&<div style={{marginTop:6,fontFamily:"var(--ff-m)",fontSize:".76rem",color:"var(--navy)",fontWeight:700}}>Category: {catLabel}</div>}
+      {si&&<div style={{marginTop:8,background:"#fffbeb",border:"1.5px solid #f59e0b",borderRadius:5,padding:"5px 14px",display:"inline-flex",alignItems:"center",gap:6,fontSize:".72rem",fontWeight:700,color:"#92400e"}}>🎓 {si.type.toUpperCase()} — FEE WAIVER APPLIES</div>}
+      {hasDirectPay&&<div style={{marginTop:8,background:"#eff6ff",border:"1.5px solid #3b82f6",borderRadius:5,padding:"5px 14px",display:"inline-flex",alignItems:"center",gap:6,fontSize:".72rem",fontWeight:700,color:"#1e40af"}}>💼 PAID DIRECT TO PROPRIETOR</div>}
     </div>
     {/* Receipt meta */}
     <div style={{display:"flex",justifyContent:"space-between",marginBottom:12,fontSize:".75rem",flexWrap:"wrap",gap:6}}>
@@ -1354,12 +1370,15 @@ function Dash({sec}){
 }
 // ACCOUNTING
 function Acct(){
-  const ctx=useApp();const ae=ctx.cashBook||[];const inc=ae.filter(e=>e.entry_type==="Income"&&!e.reversed);const exp=ae.filter(e=>e.entry_type==="Expense"&&!e.reversal_of);const ti=inc.reduce((s,e)=>s+e.amount,0);const te=exp.reduce((s,e)=>s+e.amount,0);const ns=ti-te;const pt=inc.filter(e=>e.is_prior_term).reduce((s,e)=>s+e.amount,0);const ci={};inc.forEach(e=>{ci[e.category]=(ci[e.category]||0)+e.amount});const sAi=ae.filter(e=>e.section==="A"&&e.entry_type==="Income"&&!e.reversed).reduce((s,e)=>s+e.amount,0);const sAe=ae.filter(e=>e.section==="A"&&e.entry_type==="Expense"&&!e.reversal_of).reduce((s,e)=>s+e.amount,0);const sBi=ae.filter(e=>e.section==="B"&&e.entry_type==="Income"&&!e.reversed).reduce((s,e)=>s+e.amount,0);const sBe=ae.filter(e=>e.section==="B"&&e.entry_type==="Expense"&&!e.reversal_of).reduce((s,e)=>s+e.amount,0);const payroll=(ctx.salaries||[]).reduce((s,x)=>s+(x.netPay||0),0);const dtotal=(ctx.directPay||[]).reduce((s,x)=>s+(x.amount||0),0);const lt=(ctx.lessonWeeks||[]).reduce((s,w)=>s+w.grandTotal,0);const ltch=(ctx.lessonWeeks||[]).reduce((s,w)=>s+w.totalTeacherPay,0);const lpr=(ctx.lessonWeeks||[]).reduce((s,w)=>s+w.proprietorShare,0);const revs=ae.filter(e=>e.reversal_of).length;const lgT=ae.filter(e=>e.amount>500000).length;
+  const ctx=useApp();const ae=ctx.cashBook||[];const inc=ae.filter(e=>e.entry_type==="Income"&&!e.reversed);const exp=ae.filter(e=>e.entry_type==="Expense"&&!e.reversal_of);const cashInc=inc.reduce((s,e)=>s+e.amount,0);const te=exp.reduce((s,e)=>s+e.amount,0);
+  const dtotal=(ctx.directPay||[]).reduce((s,x)=>s+(x.amount||0),0);
+  const ti=cashInc+dtotal; // Total income = cash book income + direct-to-proprietor payments
+  const ns=ti-te;const pt=inc.filter(e=>e.is_prior_term).reduce((s,e)=>s+e.amount,0);const ci={...{}};inc.forEach(e=>{ci[e.category]=(ci[e.category]||0)+e.amount});if(dtotal>0)ci["Direct to Proprietor"]=(ci["Direct to Proprietor"]||0)+dtotal;const sAi=ae.filter(e=>e.section==="A"&&e.entry_type==="Income"&&!e.reversed).reduce((s,e)=>s+e.amount,0);const sAe=ae.filter(e=>e.section==="A"&&e.entry_type==="Expense"&&!e.reversal_of).reduce((s,e)=>s+e.amount,0);const sBi=ae.filter(e=>e.section==="B"&&e.entry_type==="Income"&&!e.reversed).reduce((s,e)=>s+e.amount,0);const sBe=ae.filter(e=>e.section==="B"&&e.entry_type==="Expense"&&!e.reversal_of).reduce((s,e)=>s+e.amount,0);const payroll=(ctx.salaries||[]).reduce((s,x)=>s+(x.netPay||0),0);const lt=(ctx.lessonWeeks||[]).reduce((s,w)=>s+w.grandTotal,0);const ltch=(ctx.lessonWeeks||[]).reduce((s,w)=>s+w.totalTeacherPay,0);const lpr=(ctx.lessonWeeks||[]).reduce((s,w)=>s+w.proprietorShare,0);const revs=ae.filter(e=>e.reversal_of).length;const lgT=ae.filter(e=>e.amount>500000).length;
   return<div className="fu">
     <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:14}}>Financial Accounting</h2>
     <div className="card" style={{background:"linear-gradient(135deg,var(--navy) 0%,var(--navy3) 100%)",border:"none"}}>
       <div style={{color:"var(--gold2)",fontSize:".75rem",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12}}>P&L Summary — {ctx.termCfg?.term} {ctx.termCfg?.year}</div>
-      <div className="kg">{[["Total Income",ti,"var(--gold)"],["Total Expenses",te,"var(--redbg)"],["Net Surplus",ns,ns>=0?"#86efac":"var(--redbg)"],["Payroll",payroll,"var(--slate3)"]].map(([l,v,c])=><div key={l} style={{background:"rgba(255,255,255,.06)",borderRadius:8,padding:"14px 16px"}}><div style={{fontSize:".64rem",fontWeight:700,textTransform:"uppercase",color:"rgba(255,255,255,.5)"}}>{l}</div><div style={{fontFamily:"var(--ff-m)",fontSize:"1.2rem",fontWeight:800,color:c,marginTop:5}}>{N(v)}</div></div>)}</div>
+      <div className="kg">{[["Total Income",ti,"var(--gold)"],["Cash Book Income",cashInc,"#a7f3d0"],["Direct Payments",dtotal,"#93c5fd"],["Total Expenses",te,"var(--redbg)"],["Net Surplus",ns,ns>=0?"#86efac":"var(--redbg)"],["Payroll",payroll,"var(--slate3)"]].map(([l,v,c])=><div key={l} style={{background:"rgba(255,255,255,.06)",borderRadius:8,padding:"14px 16px"}}><div style={{fontSize:".64rem",fontWeight:700,textTransform:"uppercase",color:"rgba(255,255,255,.5)"}}>{l}</div><div style={{fontFamily:"var(--ff-m)",fontSize:"1.2rem",fontWeight:800,color:c,marginTop:5}}>{N(v)}</div></div>)}</div>
     </div>
     <div className="card"><div className="sect">Revenue by Category</div><div className="tw"><table><thead><tr><th>Category</th><th className="r">Amount</th><th className="r">%</th></tr></thead><tbody>{Object.entries(ci).sort((a,b)=>b[1]-a[1]).map(([c,a])=><tr key={c}><td style={{fontWeight:500}}>{c}</td><td className="my">{N(a)}</td><td style={{fontFamily:"var(--ff-m)",textAlign:"right",color:"var(--muted)"}}>{ti>0?(a/ti*100).toFixed(1)+"%":"0%"}</td></tr>)}<tr style={{fontWeight:700,background:"var(--navy)",color:"#fff"}}><td style={{color:"#fff"}}>TOTAL</td><td style={{fontFamily:"var(--ff-m)",textAlign:"right",color:"var(--gold2)",fontWeight:700}}>{N(ti)}</td><td style={{color:"var(--gold3)",textAlign:"right",fontFamily:"var(--ff-m)"}}>100%</td></tr></tbody></table></div></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:14}}>
@@ -1550,6 +1569,15 @@ function UserMgmt(){
   }
   async function toggle(id,active){try{await sbPA("ssfp_users",`uid=eq.${id}`,{is_active:active})}catch{}setUsers(p=>p.map(u=>u.uid===id?{...u,is_active:active}:u));addAudit(active?"ENABLE":"DISABLE",`User ${id}`,session.name)}
   async function resetPin(u){const p=prompt(`New PIN for ${u.name} (digits only):`);if(!p||!/^\d{4,8}$/.test(p)){alert("PIN must be 4-8 digits.");return}const h=await hashPin(p,u.username);try{await sbPA("ssfp_users",`uid=eq.${u.uid}`,{pin_hash:h})}catch{}setUsers(p2=>p2.map(x=>x.uid===u.uid?{...x,pin_hash:h}:x));addAudit("RESET_PIN",`PIN reset for ${u.username}`,session.name);alert("✓ PIN updated.")}
+  async function deleteUser(u){
+    if([PROP_USER,SUPER_USER].includes(u.username.toLowerCase())){setMsg({t:1,m:"Cannot delete a reserved system account."});return}
+    if(!window.confirm(`PERMANENTLY delete user "${u.name}" (${u.username})? This cannot be undone.`))return;
+    if(!window.confirm(`FINAL CONFIRM: Delete ${u.username}? They will immediately lose all access.`))return;
+    try{await sbD("ssfp_users",`uid=eq.${u.uid}`)}catch(e){setMsg({t:1,m:"Delete failed: "+e.message});return}
+    setUsers(p=>p.filter(x=>x.uid!==u.uid));
+    addAudit("DELETE_USER",`Permanently deleted ${u.username} (${u.role})`,session.name);
+    setMsg({t:0,m:`✓ User "${u.username}" permanently deleted.`});setTimeout(()=>setMsg(null),4e3);
+  }
   return<div className="fu">
     <h2 style={{fontFamily:"var(--ff-d)",fontSize:"1.15rem",color:"var(--navy)",marginBottom:14}}>User Management</h2>
     {msg&&<div className={msg.t?"msg-err":"msg-ok"}>{msg.m}</div>}
@@ -1577,6 +1605,7 @@ function UserMgmt(){
         <td><div style={{display:"flex",gap:5}}>
           <button className={"btn btn-sm "+(u.is_active?"btn-red":"btn-green")} onClick={()=>toggle(u.uid,!u.is_active)}>{u.is_active?"Disable":"Enable"}</button>
           <button className="btn btn-ghost btn-sm" onClick={()=>resetPin(u)}>Reset PIN</button>
+          <button className="btn btn-red btn-xs" onClick={()=>deleteUser(u)} title="Permanently delete this user">🗑 Delete</button>
         </div></td>
       </tr>)}</tbody></table></div>}
     </div>
@@ -1681,6 +1710,35 @@ function Settings(){
       </div>
     </div>
     {msg&&<div className={msg.t?"msg-err":"msg-ok"}>{msg.m}</div>}
+    <div className="card" style={{borderTop:"3px solid var(--navy)"}}>
+      <div className="sect">🔐 Change My Login PIN</div>
+      <p className="hint" style={{marginBottom:12}}>Enter your current PIN to verify identity, then set a new one.</p>
+      <div className="gf2">
+        <div className="fl"><span className="flb">Current PIN</span><input type="password" inputMode="numeric" maxLength={8} value={oldPin} onChange={e=>setOldPin(e.target.value.replace(/\D/g,""))} className="inp" placeholder="Current PIN"/></div>
+        <div className="fl"><span className="flb">New PIN</span><input type="password" inputMode="numeric" maxLength={8} value={newPin} onChange={e=>setNewPin(e.target.value.replace(/\D/g,""))} className="inp" placeholder="4–8 digits"/></div>
+        <div className="fl"><span className="flb">Confirm New PIN</span><input type="password" inputMode="numeric" maxLength={8} value={newPin2} onChange={e=>setNewPin2(e.target.value.replace(/\D/g,""))} className="inp" placeholder="Repeat new PIN"/></div>
+      </div>
+      <button className="btn btn-save" style={{marginTop:12}} onClick={async()=>{
+        if(!oldPin||!newPin||!newPin2){setMsg({t:1,m:"Fill all three PIN fields."});return}
+        if(newPin!==newPin2){setMsg({t:1,m:"New PINs do not match."});return}
+        if(newPin.length<4){setMsg({t:1,m:"New PIN must be at least 4 digits."});return}
+        // Verify current PIN
+        const sess=ctx.session;if(!sess?.username){setMsg({t:1,m:"Session error — please log in again."});return}
+        const curHash=await hashPin(oldPin,sess.username);
+        // Fetch current user record to compare
+        let dbUser=null;
+        try{const r=await sbG("ssfp_users",`username=eq.${sess.username}&limit=1`);dbUser=r?.[0]}catch{}
+        if(!dbUser){setMsg({t:1,m:"Could not verify identity. Check DB connection."});return}
+        if(dbUser.pin_hash!==curHash){setMsg({t:1,m:"❌ Current PIN is incorrect."});return}
+        const newHash=await hashPin(newPin,sess.username);
+        try{await sbPA("ssfp_users",`uid=eq.${dbUser.uid}`,{pin_hash:newHash});
+          ctx.addAudit("CHANGE_PIN",`Own PIN changed`,sess.name);
+          setMsg({t:0,m:"✓ PIN changed successfully. Use your new PIN next time you log in."});
+          setOldPin("");setNewPin("");setNewPin2("");
+        }catch(e){setMsg({t:1,m:"PIN update failed: "+e.message})}
+        setTimeout(()=>setMsg(null),8e3);
+      }}>🔐 CHANGE PIN</button>
+    </div>
     <div className="card"><div className="sect">School Profile & Receipt Details</div>
       <div className="gf2">
         <div className="fl"><span className="flb">School Name</span><input value={localProfile.name||""} onChange={e=>setLocalProfile({...localProfile,name:e.target.value})} className="inp" placeholder={SCHOOL_NAME}/></div>
@@ -1732,7 +1790,7 @@ function Settings(){
         <div className="fl"><span className="flb">Amount ({"\u20A6"})</span><input type="number" value={dp.amount} onChange={e=>setDp({...dp,amount:e.target.value})} className="inpm" placeholder="0.00"/></div>
       </div>
       <button className="btn btn-primary btn-sm" onClick={addDP} disabled={!dp.student||!dp.class_name||!dp.category||!dp.amount}>RECORD DIRECT PAYMENT</button>
-      {(ctx.directPay||[]).length>0&&<div className="tw" style={{marginTop:12}}><table><thead><tr><th>#</th><th>Student</th><th>Class</th><th>Category</th><th className="r">Amount</th><th>Date</th></tr></thead><tbody>{(ctx.directPay||[]).slice(0,20).map((d,i)=><tr key={d.did}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:500}}>{d.student}</td><td>{d.class_name}</td><td>{d.category||"—"}</td><td className="my">{N(d.amount)}</td><td style={{color:"var(--muted)",fontSize:".72rem"}}>{fmtD(d.date)}</td></tr>)}</tbody></table></div>}
+      <p className="hint" style={{marginTop:8}}>ℹ Direct payments are reflected in student ledgers, class portal, payment analysis and accounting. They do <strong>not</strong> appear in the daily Cash Book liquidity.</p>
     </div>
     <div className="card"><div className="sect">🎓 Scholarships & Mercy Students</div>
       <div className="gf2" style={{marginBottom:10}}>
@@ -1741,7 +1799,7 @@ function Settings(){
         <div className="fl"><span className="flb">Type</span><select value={sp.type} onChange={e=>setSp({...sp,type:e.target.value})} className="sel"><option>Scholarship</option><option>Mercy of School</option></select></div>
       </div>
       <button className="btn btn-primary btn-sm" onClick={addSch} disabled={!sp.student||!sp.class_name}>RECORD SCHOLARSHIP</button>
-      {(ctx.scholarships||[]).length>0&&<div className="tw" style={{marginTop:12}}><table><thead><tr><th>#</th><th>Student</th><th>Class</th><th>Type</th><th>Date</th></tr></thead><tbody>{(ctx.scholarships||[]).slice(0,20).map((s,i)=><tr key={s.scid}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:500}}>{s.student}</td><td>{s.class_name}</td><td><span className="badge bdo">{s.type}</span></td><td style={{color:"var(--muted)",fontSize:".72rem"}}>{fmtD(s.date)}</td></tr>)}</tbody></table></div>}
+      {(ctx.scholarships||[]).length>0&&<div className="tw" style={{marginTop:12}}><table><thead><tr><th>#</th><th>Student</th><th>Class</th><th>Type</th><th>Date</th><th>Action</th></tr></thead><tbody>{(ctx.scholarships||[]).map((s,i)=><tr key={s.scid}><td style={{color:"var(--muted)"}}>{i+1}</td><td style={{fontWeight:500}}>{s.student}</td><td>{s.class_name}</td><td><span className="badge bdo">{s.type}</span></td><td style={{color:"var(--muted)",fontSize:".72rem"}}>{fmtD(s.date)}</td><td><button className="btn btn-red btn-xs" onClick={()=>{if(window.confirm(`Remove ${s.student} from scholarship list?`))ctx.deleteSch(s.scid)}} title="Remove">🗑</button></td></tr>)}</tbody></table></div>}
     </div>
     <div className="card" style={{borderTop:"3px solid var(--red)"}}><div className="sect">⚠️ Danger Zone</div>
       <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
@@ -1762,9 +1820,10 @@ function Settings(){
   </div>;
 }
 // LOCAL CACHE → CLOUD RECOVERY TOOL
-function LocalCacheSync(){
+function LocalCacheSync({compact}){
   const ctx=useApp();
-  const[status,setStatus]=useState(null);// null | {running,done,counts,errors}
+  const[status,setStatus]=useState(null);
+  const[show,setShow]=useState(!compact);
   const importRef=useRef();
   async function pushLocalCache(){
     if(!window.confirm("This will push all data from THIS device's local cache to the cloud database.\n\nSafe to run: existing cloud entries will NOT be overwritten — only missing ones will be added.\n\nContinue?"))return;
@@ -1843,26 +1902,22 @@ function LocalCacheSync(){
   }
   const totalPushed=status?.counts?Object.values(status.counts).reduce((s,v)=>s+v,0):0;
   return <div>
-    <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:12}}>
+    <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:8,alignItems:"center"}}>
       <button className="btn btn-primary" onClick={pushLocalCache} disabled={status?.running} style={{background:"var(--blue)"}}>
-        {status?.running?"⏳ Syncing…":"☁ Push THIS Device's Cache → Cloud"}
+        {status?.running?"⏳ Syncing…":"☁ Push This Device → Cloud"}
       </button>
-      <div>
-        <input ref={importRef} type="file" accept=".json" style={{display:"none"}} onChange={e=>e.target.files[0]&&importBackup(e.target.files[0])}/>
-        <button className="btn btn-outline" onClick={()=>importRef.current?.click()} disabled={status?.running}>
-          📂 Import Backup from Another Device
-        </button>
-      </div>
+      <input ref={importRef} type="file" accept=".json" style={{display:"none"}} onChange={e=>e.target.files[0]&&importBackup(e.target.files[0])}/>
+      {!compact&&<button className="btn btn-outline" onClick={()=>importRef.current?.click()} disabled={status?.running}>📂 Import Backup File</button>}
+      {compact&&<button className="btn btn-ghost btn-sm" onClick={()=>setShow(s=>!s)}>{show?"▲ Less":"▼ More options"}</button>}
     </div>
+    {compact&&show&&<div style={{marginBottom:8}}><button className="btn btn-outline btn-sm" onClick={()=>importRef.current?.click()} disabled={status?.running}>📂 Import Backup from Another Device</button></div>}
     {status?.running&&<div className="msg-info">⏳ Uploading local cache to Supabase… please wait.</div>}
-    {status?.done&&<div style={{marginTop:8}}>
+    {status?.done&&<div style={{marginTop:6}}>
       {status.errors.length===0
-        ?<div className="msg-ok">✅ Sync complete! {totalPushed} entries pushed to cloud.<br/><span style={{fontSize:".78rem",opacity:.8}}>{Object.entries(status.counts).filter(([,v])=>v>0).map(([k,v])=>`${k}: ${v}`).join(" · ")}</span><br/><span style={{fontSize:".75rem",opacity:.7}}>Reload the page or tap ↻ Sync to see merged data from all devices.</span></div>
-        :<div><div className="msg-warn">⚠ Sync completed with {status.errors.length} error(s). {totalPushed} entries pushed.<br/><span style={{fontSize:".76rem"}}>{status.errors.join(" | ")}</span></div>
-        {Object.entries(status.counts).some(([,v])=>v>0)&&<div className="msg-ok" style={{marginTop:6}}>✓ Successfully pushed: {Object.entries(status.counts).filter(([,v])=>v>0).map(([k,v])=>`${k}(${v})`).join(", ")}</div>}
-        </div>}
+        ?<div className="msg-ok">✅ Done! {totalPushed} records pushed to cloud. Reload to see merged data.<br/><span style={{fontSize:".75rem",opacity:.75}}>{Object.entries(status.counts).filter(([,v])=>v>0).map(([k,v])=>`${k}:${v}`).join(" · ")}</span></div>
+        :<div className="msg-warn">⚠ {status.errors.length} error(s). {totalPushed} pushed.<br/><span style={{fontSize:".74rem"}}>{status.errors.join(" | ")}</span></div>}
     </div>}
-    <p className="hint" style={{marginTop:8}}>💡 <strong>How to merge entries from all devices:</strong> Open this page on Device 1 → Click "Push Cache → Cloud". Then open on Device 2 → Click again. Repeat for each device. Finally reload on any device — all entries will be visible.</p>
+    {!compact&&<p className="hint" style={{marginTop:6}}>💡 Open on each device → Push → then reload anywhere to see all merged data.</p>}
   </div>;
 }
 try {
