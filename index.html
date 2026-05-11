@@ -383,15 +383,19 @@ function Prov({children}){
         if(cfg.lessonCur){setLessonCur(cfg.lessonCur);LS.s("ssfp_lesson",cfg.lessonCur)}
         if(cfg.schoolProfile){setSchoolProfile(p=>({...p,...cfg.schoolProfile}));LS.s("ssfp_profile",cfg.schoolProfile)}
         if(cfg.aiConfig){setAiConfig(a=>({...a,...cfg.aiConfig}));LS.s("ssfp_ai",cfg.aiConfig)}
+        // Restore staff roster from DB settings (cross-device sync)
+        if(cfg.staffRoster&&Array.isArray(cfg.staffRoster)){LS.s("ssfp_roster",cfg.staffRoster)}
       } else {
-        const lsCats=LS.g("ssfp_cats",null);const lsTargets=LS.g("ssfp_targets",null);const lsTerm=LS.g("ssfp_term",null);const lsProfile=LS.g("ssfp_profile",null);const lsAI=LS.g("ssfp_ai",null);const lsLesson=LS.g("ssfp_lesson",null);
+        const lsCats=LS.g("ssfp_cats",null);const lsTargets=LS.g("ssfp_targets",null);const lsTerm=LS.g("ssfp_term",null);const lsProfile=LS.g("ssfp_profile",null);const lsAI=LS.g("ssfp_ai",null);const lsLesson=LS.g("ssfp_lesson",null);const lsRoster=LS.g("ssfp_roster",null);
         if(lsCats||lsTargets||lsTerm||lsProfile){
-          const sv={categories:lsCats||DEF_CATS,feeTargets:lsTargets||{},termCfg:lsTerm||{term:"Term 1",year:"2025/2026"},lessonCur:lsLesson||{days:{},teacherRate:2500,teacherCount:10},schoolProfile:lsProfile||{},aiConfig:lsAI||{}};
+          const sv={categories:lsCats||DEF_CATS,feeTargets:lsTargets||{},termCfg:lsTerm||{term:"Term 1",year:"2025/2026"},lessonCur:lsLesson||{days:{},teacherRate:2500,teacherCount:10},schoolProfile:lsProfile||{},aiConfig:lsAI||{},staffRoster:lsRoster||[]};
           try{await sbU("ssfp_settings",[{key:"main",value:sv}])}catch{}
         }
       }
       cb.filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{if(!mapped[e.class_name])return;const si=mapped[e.class_name].findIndex(s=>s.name===e.student);if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:e.amount,mode:e.mode,isPriorTerm:e.is_prior_term||false,timestamp:e.timestamp,receiptId:e.receipt_id||e.entry_id})});
       cb.filter(e=>e.reversal_of).forEach(e=>{if(!mapped[e.class_name])return;const si=mapped[e.class_name].findIndex(s=>s.name===e.student);if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:-Math.abs(e.amount),mode:e.mode,note:"Reversal",timestamp:e.timestamp})});
+      // Re-inject Direct Payments into student ledgers (they live in ssfp_direct_pay, not cashbook)
+      dp.forEach(d=>{if(!mapped[d.class_name])return;const si=mapped[d.class_name].findIndex(s=>s.name===d.student);if(si>=0){const alreadyIn=mapped[d.class_name][si].payments.some(p=>p.id==="DP-"+d.did);if(!alreadyIn)mapped[d.class_name][si].payments.push({id:"DP-"+d.did,date:d.date,category:d.category||"Direct Payment",amount:d.amount,mode:"Direct to Proprietor",isPriorTerm:false,timestamp:new Date(d.created_at||d.date).getTime()})}});
       setStudents(mapped);setCashBook(cb);
       setSalaries(sal);setExtExams(ext);setLessonWeeks(lw);setDirectPay(dp);setScholarships(sch);setAuditLog(al);setNotifs(nf);
       LS.s("ssfp_students",mapped);
@@ -408,11 +412,12 @@ function Prov({children}){
     }
   })()},[]);
   const[dbWriteErr,setDbWriteErr]=useState(null);
-  const saveAllSettings=useCallback(async(cats,ft,tc,lc,sp,ai)=>{
+  const saveAllSettings=useCallback(async(cats,ft,tc,lc,sp,ai,roster)=>{
     // 1. Always write to localStorage immediately (local cache)
     LS.s("ssfp_cats",cats);LS.s("ssfp_targets",ft);LS.s("ssfp_term",tc);LS.s("ssfp_lesson",lc);LS.s("ssfp_profile",sp);LS.s("ssfp_ai",ai);
-    // 2. Write to DB as single source of truth
-    const val={categories:cats,feeTargets:ft,termCfg:tc,lessonCur:lc,schoolProfile:sp,aiConfig:ai};
+    // 2. Write to DB as single source of truth — include staffRoster for cross-device sync
+    const currentRoster=roster!==undefined?roster:LS.g("ssfp_roster",[]);
+    const val={categories:cats,feeTargets:ft,termCfg:tc,lessonCur:lc,schoolProfile:sp,aiConfig:ai,staffRoster:currentRoster};
     try{
       const res=await sbU("ssfp_settings",[{key:"main",value:val}]);
       setDbWriteErr(null);
@@ -501,20 +506,25 @@ Respond in 2-3 concise sentences. Flag genuine concerns only. If all looks norma
           mapped[cls].push({name:s.name||"",admno:s.admno||"",gender:s.gender||"",supaId:s.id,payments:[],arrears:0});
       });
       Object.keys(mapped).forEach(cls=>{if(Array.isArray(mapped[cls]))mapped[cls].sort((a,b)=>a.name.localeCompare(b.name))});
-      
-      (cashBook||[]).filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{if(!mapped[e.class_name])return;const si=mapped[e.class_name].findIndex(s=>s.name===e.student);if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:e.amount,mode:e.mode,isPriorTerm:e.is_prior_term||false,timestamp:e.timestamp})});
-      setStudents(mapped);setDbOk(true);setSyncMsg(`Synced — ${raw.length} students`);
+      // Re-inject cashbook income entries
+      (cashBook||[]).filter(e=>e.entry_type==="Income"&&!e.reversed).forEach(e=>{if(!mapped[e.class_name])return;const si=mapped[e.class_name].findIndex(s=>s.name===e.student);if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:e.amount,mode:e.mode,isPriorTerm:e.is_prior_term||false,timestamp:e.timestamp,receiptId:e.receipt_id||e.entry_id})});
+      (cashBook||[]).filter(e=>e.reversal_of).forEach(e=>{if(!mapped[e.class_name])return;const si=mapped[e.class_name].findIndex(s=>s.name===e.student);if(si>=0)mapped[e.class_name][si].payments.push({id:e.entry_id,date:e.date,category:e.category,amount:-Math.abs(e.amount),mode:e.mode,note:"Reversal",timestamp:e.timestamp})});
+      // Re-inject Direct Payments so they survive refresh without losing from ledger
+      let curDP=[];
+      try{curDP=await sbG("ssfp_direct_pay","order=created_at.desc");setDirectPay(curDP);LS.s("ssfp_dp",curDP)}catch{curDP=LS.g("ssfp_dp",[])}
+      curDP.forEach(d=>{if(!mapped[d.class_name])return;const si=mapped[d.class_name].findIndex(s=>s.name===d.student);if(si>=0){const alreadyIn=mapped[d.class_name][si].payments.some(p=>p.id==="DP-"+d.did);if(!alreadyIn)mapped[d.class_name][si].payments.push({id:"DP-"+d.did,date:d.date,category:d.category||"Direct Payment",amount:d.amount,mode:"Direct to Proprietor",isPriorTerm:false,timestamp:new Date(d.created_at||d.date).getTime()})}});
+      setStudents(mapped);LS.s("ssfp_students",mapped);setDbOk(true);setSyncMsg(`Synced — ${raw.length} students`);
     }catch(e){setFetchErr(e.message);setDbOk(false);setSyncMsg(`Sync failed: ${e.message}`)}
   },[cashBook]);
   useEffect(()=>{
     window.addEventListener("focus",refreshStudents);
     return()=>{window.removeEventListener("focus",refreshStudents)};
   },[refreshStudents]);
-  const saveSal=async s=>{try{await sbP("ssfp_salaries",s)}catch{};setSalaries(p=>{const n=[...p,s];LS.s("ssfp_sal",n);return n})};
-  const saveExt=async e=>{try{await sbP("ssfp_ext_exams",e)}catch{};setExtExams(p=>{const n=[...p,e];LS.s("ssfp_ext",n);return n})};
-  const saveLW=async w=>{try{await sbP("ssfp_lesson_weeks",w)}catch{};setLessonWeeks(p=>{const n=[...p,w];LS.s("ssfp_lw",n);return n})};
-  const saveDP=async d=>{try{await sbP("ssfp_direct_pay",d)}catch{};setDirectPay(p=>{const n=[...p,d];LS.s("ssfp_dp",n);return n})};
-  const saveSch=async s=>{try{await sbP("ssfp_scholarships",s)}catch{};setScholarships(p=>{const n=[...p,s];LS.s("ssfp_sch",n);return n})};
+  const saveSal=async s=>{try{await sbU("ssfp_salaries",[s]);setDbWriteErr(null)}catch(err){const msg=err?.message||String(err);console.error("saveSal failed:",msg);setDbWriteErr("⚠ Salary DB save failed: "+msg)};setSalaries(p=>{const n=[...p,s];LS.s("ssfp_sal",n);return n})};
+  const saveExt=async e=>{try{await sbU("ssfp_ext_exams",[e]);setDbWriteErr(null)}catch(err){const msg=err?.message||String(err);console.error("saveExt failed:",msg);setDbWriteErr("⚠ Ext Exam DB save failed: "+msg)};setExtExams(p=>{const n=[...p,e];LS.s("ssfp_ext",n);return n})};
+  const saveLW=async w=>{try{await sbU("ssfp_lesson_weeks",[w]);setDbWriteErr(null)}catch(err){const msg=err?.message||String(err);console.error("saveLW failed:",msg);setDbWriteErr("⚠ Lesson Week DB save failed: "+msg)};setLessonWeeks(p=>{const n=[...p,w];LS.s("ssfp_lw",n);return n})};
+  const saveDP=async d=>{try{await sbU("ssfp_direct_pay",[d]);setDbWriteErr(null)}catch(err){const msg=err?.message||String(err);console.error("saveDP failed:",msg);setDbWriteErr("⚠ Direct Pay DB save failed: "+msg)};setDirectPay(p=>{const n=[...p,d];LS.s("ssfp_dp",n);return n})};
+  const saveSch=async s=>{try{await sbU("ssfp_scholarships",[s]);setDbWriteErr(null)}catch(err){const msg=err?.message||String(err);console.error("saveSch failed:",msg);setDbWriteErr("⚠ Scholarship DB save failed: "+msg)};setScholarships(p=>{const n=[...p,s];LS.s("ssfp_sch",n);return n})};
   const saveStudent=async(stu)=>{
     const row={name:stu.name,class_key:stu.class_name.toLowerCase().replace(/\s+/g,"-").replace(/è/g,"e"),admno:stu.admno||uid().slice(0,6).toUpperCase(),gender:stu.gender||""};
     try{await sbU("students",[row]);await refreshStudents()}catch(e){console.error("Student save failed:",e);throw e}
@@ -1376,11 +1386,15 @@ function Sal(){
     if(!rosterName.trim())return;
     const entry={rid:uid(),name:rosterName.trim(),role:rosterRole.trim(),gross:parseFloat(rosterGross)||0,ded:parseFloat(rosterDed)||0};
     const nr=[...roster,entry];setRoster(nr);LS.s("ssfp_roster",nr);
+    // Sync roster to DB so it persists across devices
+    ctx.saveAllSettings(ctx.categories,ctx.feeTargets,ctx.termCfg,ctx.lessonCur,ctx.schoolProfile,ctx.aiConfig,nr).catch(()=>{});
     setRosterName("");setRosterRole("");setRosterGross("");setRosterDed("");
   }
   function removeRosterEntry(rid){
     if(!window.confirm("Remove this staff from the roster?"))return;
     const nr=roster.filter(r=>r.rid!==rid);setRoster(nr);LS.s("ssfp_roster",nr);
+    // Sync removal to DB
+    ctx.saveAllSettings(ctx.categories,ctx.feeTargets,ctx.termCfg,ctx.lessonCur,ctx.schoolProfile,ctx.aiConfig,nr).catch(()=>{});
   }
   async function quickAddToPayroll(r){
     const g=r.gross||0;const d=r.ded||0;const net=g-d;
